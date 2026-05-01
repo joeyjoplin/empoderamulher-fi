@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { PersonaProvider } from "@/context/PersonaContext";
+import { ImpactProvider } from "@/context/ImpactContext";
 import Index from "./pages/Index.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
 import InsightDetail from "./pages/InsightDetail.tsx";
@@ -12,8 +13,11 @@ import CreditSuccess from "./pages/CreditSuccess.tsx";
 import ScorePage from "./pages/ScorePage.tsx";
 import ChatPage from "./pages/ChatPage.tsx";
 import MarketplacePage from "./pages/MarketplacePage.tsx";
+import ContratarPage from "./pages/ContratarPage.tsx";
+import ContratarSucessoPage from "./pages/ContratarSucessoPage.tsx";
 import CobrarPage from "./pages/CobrarPage.tsx";
 import HistoricoPage from "./pages/HistoricoPage.tsx";
+import ImpactoPage from "./pages/ImpactoPage.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -24,23 +28,28 @@ const App = () => (
       <Toaster />
       <Sonner />
       <PersonaProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/insights/:id" element={<InsightDetail />} />
-            <Route path="/credit/offer" element={<InsightDetail />} />
-            <Route path="/credit/confirm" element={<CreditConfirm />} />
-            <Route path="/credit/success" element={<CreditSuccess />} />
-            <Route path="/score" element={<ScorePage />} />
-            <Route path="/chat" element={<ChatPage />} />
-            <Route path="/marketplace" element={<MarketplacePage />} />
-            <Route path="/marketplace/cobrar" element={<CobrarPage />} />
-            <Route path="/historico" element={<HistoricoPage />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+        <ImpactProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/insights/:id" element={<InsightDetail />} />
+              <Route path="/credit/offer" element={<InsightDetail />} />
+              <Route path="/credit/confirm" element={<CreditConfirm />} />
+              <Route path="/credit/success" element={<CreditSuccess />} />
+              <Route path="/score" element={<ScorePage />} />
+              <Route path="/chat" element={<ChatPage />} />
+              <Route path="/marketplace" element={<MarketplacePage />} />
+              <Route path="/marketplace/contratar/:id" element={<ContratarPage />} />
+              <Route path="/marketplace/sucesso" element={<ContratarSucessoPage />} />
+              <Route path="/marketplace/cobrar" element={<CobrarPage />} />
+              <Route path="/historico" element={<HistoricoPage />} />
+              <Route path="/impacto" element={<ImpactoPage />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </ImpactProvider>
       </PersonaProvider>
     </TooltipProvider>
   </QueryClientProvider>
