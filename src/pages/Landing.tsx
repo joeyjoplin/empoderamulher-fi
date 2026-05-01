@@ -1,0 +1,63 @@
+import { Link } from "react-router-dom";
+import { ArrowRight, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
+
+export default function Landing() {
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="container-mobile flex h-14 items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <span className="text-sm font-bold">E</span>
+          </div>
+          <span className="text-base font-semibold tracking-tight text-primary">EmpowerFI</span>
+        </div>
+      </header>
+
+      <main className="container-mobile pb-12 pt-8">
+        <section className="animate-fade-in">
+          <span className="inline-block rounded-full bg-highlight px-3 py-1 text-xs font-semibold uppercase tracking-wider text-accent">
+            Para quem empreende de verdade
+          </span>
+          <h1 className="mt-4 text-3xl font-bold leading-tight tracking-tight text-primary sm:text-4xl">
+            Crédito justo, organização e uma assistente que olha pelo seu negócio.
+          </h1>
+          <p className="mt-4 text-base leading-relaxed text-muted-foreground">
+            EmpowerFI é a fintech feita para microempreendedoras brasileiras.
+            Sem letra miúda, sem cheque especial caro, sem juízo.
+          </p>
+
+          <Link
+            to="/dashboard"
+            className="tap-target mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3.5 text-[15px] font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/95"
+          >
+            Entrar com email
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+          <p className="mt-3 text-center text-xs text-muted-foreground">
+            Demo: você entra como Maria, confeiteira em SP.
+          </p>
+        </section>
+
+        <section className="mt-12 grid gap-4">
+          {[
+            { Icon: Sparkles, title: "IA proativa", desc: "Avisa antes da quebra de fluxo, com soluções concretas." },
+            { Icon: TrendingUp, title: "Score gamificado", desc: "Construa reputação financeira com ações reais." },
+            { Icon: ShieldCheck, title: "Crédito justo", desc: "4% ao mês, sem surpresas. Lastreado em Tesouro Nacional." },
+          ].map(({ Icon, title, desc }) => (
+            <div key={title} className="rounded-xl border border-border bg-card p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="text-[15px] font-semibold text-foreground">{title}</div>
+                  <div className="mt-1 text-sm text-muted-foreground">{desc}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </section>
+      </main>
+    </div>
+  );
+}
