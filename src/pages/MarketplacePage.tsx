@@ -1,17 +1,14 @@
-import { useState } from "react";
-import { Heart, ChevronDown } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
-import { MerchantCard } from "@/components/marketplace/MerchantCard";
-import { merchants } from "@/data/marketplace";
+import { marketplaceListings } from "@/data/impactData";
+import { useImpact } from "@/context/ImpactContext";
+import { ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
-
-const categories = ["todas", "insumos", "embalagens", "serviços", "parcerias"] as const;
+import { useState } from "react";
+import { formatBRL } from "@/lib/format";
 
 export default function MarketplacePage() {
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [category, setCategory] = useState<string>("todas");
-
-  const list = merchants.filter((m) => category === "todas" || m.category === category);
+  const { hiredThisMonth } = useImpact();
+  const [showSoon, setShowSoon] = useState(false);
 
   return (
     <div className="min-h-screen bg-background pb-12">
@@ -19,59 +16,113 @@ export default function MarketplacePage() {
 
       <main className="container-mobile space-y-4 py-5">
         <div className="rounded-xl border border-highlight bg-highlight p-4 animate-fade-in">
-          <div className="flex items-start gap-3">
-            <Heart className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-            <p className="text-sm leading-relaxed text-primary">
-              Comprar de outras empreendedoras fortalece toda a rede. Cada transação registrada gera
-              dados de impacto.
-            </p>
-          </div>
+          <p className="text-sm leading-relaxed text-primary">
+            💝 Comprar de outras empreendedoras fortalece toda a rede. Cada transação é registrada
+            em <strong>blockchain</strong> para auditoria de impacto.
+          </p>
         </div>
 
-        <div className="flex items-center justify-between">
-          <Link
-            to="/marketplace/cobrar"
-            className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted"
-          >
-            + Cobrar alguém
-          </Link>
-          <button
-            onClick={() => setFilterOpen((o) => !o)}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground"
-          >
-            Filtros <ChevronDown className={["h-3 w-3 transition-transform", filterOpen ? "rotate-180" : ""].join(" ")} />
-          </button>
+        <div className="text-xs text-muted-foreground">
+          Você contratou <strong className="text-foreground">{hiredThisMonth}</strong>{" "}
+          empreendedora(s) este mês
         </div>
-
-        {filterOpen ? (
-          <div className="rounded-lg border border-border bg-card p-3 animate-fade-in">
-            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Categoria
-            </div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {categories.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => setCategory(c)}
-                  className={[
-                    "rounded-full border px-3 py-1.5 text-xs font-medium capitalize",
-                    category === c
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border bg-card text-foreground hover:bg-muted",
-                  ].join(" ")}
-                >
-                  {c}
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : null}
 
         <section className="space-y-3">
-          {list.map((m) => (
-            <MerchantCard key={m.id} merchant={m} />
+          {marketplaceListings.map((m) => (
+            <article
+              key={m.id}
+              className={[
+                "rounded-xl border p-4 shadow-sm",
+                m.isSelf
+                  ? "border-accent/40 bg-highlight/40"
+                  : "border-border bg-card",
+              ].join(" ")}
+            >
+              <div className="flex items-start gap-3">
+                <div
+                  className={[
+                    "flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
+                    m.isSelf
+                      ? "bg-accent text-accent-foreground"
+                      : "bg-secondary text-primary",
+                  ].join(" ")}
+                >
+                  {m.initials}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <h3 className="truncate text-[15px] font-semibold text-foreground">
+                      {m.sellerName}
+                    </h3>
+                    {m.verified && !m.isSelf ? (
+                      <ShieldCheck className="h-4 w-4 shrink-0 text-success" />
+                    ) : null}
+                  </div>
+                  <div className="text-xs text-muted-foreground">{m.city}</div>
+
+                  {m.isSelf ? (
+                    <p className="mt-1 text-sm text-foreground">
+                      Você está oferecendo:{" "}
+                      <strong>{m.specialty}</strong> — {m.itemHighlight}
+                    </p>
+                  ) : (
+                    <>
+                      <p className="mt-1 text-sm text-foreground">{m.specialty}</p>
+                      <p className="mt-1 text-sm">
+                        <span className="text-muted-foreground">Item destaque: </span>
+                        <strong className="text-foreground">
+                          {m.itemHighlight} — {formatBRL(m.itemPrice)}
+                        </strong>
+                      </p>
+                      <span className="mt-2 inline-block rounded-full bg-highlight px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-accent">
+                        ✓ Verificada na rede EmpowerFI
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-3">
+                {m.isSelf ? (
+                  <button
+                    onClick={() => setShowSoon(true)}
+                    className="tap-target w-full rounded-lg border border-accent bg-card px-4 py-2.5 text-center text-sm font-semibold text-accent hover:bg-accent/10"
+                  >
+                    Editar minha oferta
+                  </button>
+                ) : (
+                  <Link
+                    to={`/marketplace/contratar/${m.id}`}
+                    className="tap-target block w-full rounded-lg bg-primary px-4 py-2.5 text-center text-sm font-semibold text-primary-foreground hover:bg-primary/95"
+                  >
+                    Contratar
+                  </Link>
+                )}
+              </div>
+            </article>
           ))}
         </section>
+
+        {showSoon ? (
+          <>
+            <div
+              className="fixed inset-0 z-40 bg-foreground/40"
+              onClick={() => setShowSoon(false)}
+            />
+            <div className="fixed inset-x-4 top-1/3 z-50 mx-auto max-w-sm rounded-xl border border-border bg-card p-5 shadow-xl animate-scale-in">
+              <h3 className="text-base font-semibold text-primary">Em breve</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Edição da sua oferta estará disponível em breve.
+              </p>
+              <button
+                onClick={() => setShowSoon(false)}
+                className="tap-target mt-4 w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"
+              >
+                Entendi
+              </button>
+            </div>
+          </>
+        ) : null}
       </main>
     </div>
   );
