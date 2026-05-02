@@ -7,12 +7,15 @@ skip-lint = false
 
 [programs.localnet]
 smartcontracts = "8naXy6dEdqVEqdfy1VXsHT2MPm1SRbjms6NZZVch676p"
+rwa_token = "CwVqgcBCZtGPYtCrvkFfLpBwhEXLvsb8Cr3KMsiyK655"
+collateral_pool = "9DqYSPMWaPBhoJ883KfgiaCiTgCWcZ9qhz4GBQ4CNrTw"
+loan_origination = "99SfPmytt5sJrmCfvpjiG1WdPMCY9b9iNd8KLVdmBLPU"
 
 [provider]
 cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "cargo test"
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
 
 [hooks]

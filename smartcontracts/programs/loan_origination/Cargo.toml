@@ -1,0 +1,27 @@
+[package]
+name = "loan_origination"
+version = "0.1.0"
+description = "EmpowerFI loan origination program (request, approve, disburse, repay, close)"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "loan_origination"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build", "collateral_pool/idl-build"]
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+
+[dependencies]
+anchor-lang = "1.0.0"
+collateral_pool = { path = "../collateral_pool", features = ["cpi"] }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }

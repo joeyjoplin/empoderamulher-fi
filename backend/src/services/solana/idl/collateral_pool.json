@@ -1,0 +1,561 @@
+{
+  "address": "9DqYSPMWaPBhoJ883KfgiaCiTgCWcZ9qhz4GBQ4CNrTw",
+  "metadata": {
+    "name": "collateral_pool",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "EmpowerFI collateral pool for credit origination"
+  },
+  "instructions": [
+    {
+      "name": "deposit",
+      "discriminator": [
+        242,
+        35,
+        198,
+        137,
+        82,
+        225,
+        242,
+        182
+      ],
+      "accounts": [
+        {
+          "name": "depositor",
+          "signer": true
+        },
+        {
+          "name": "pool_state",
+          "docs": [
+            "PDA seeds: [POOL_SEED]"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "relations": [
+            "pool_state"
+          ]
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "relations": [
+            "pool_state"
+          ]
+        },
+        {
+          "name": "depositor_ata",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initialize_pool",
+      "discriminator": [
+        95,
+        180,
+        10,
+        172,
+        84,
+        174,
+        232,
+        40
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "pool_state",
+          "docs": [
+            "PDA seeds: [POOL_SEED]"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "vault",
+          "docs": [
+            "PDA seeds: [POOL_VAULT_SEED] — Token-2022 account owned by pool_state"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "lock_collateral",
+      "discriminator": [
+        161,
+        216,
+        135,
+        122,
+        12,
+        104,
+        211,
+        101
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "pool_state",
+          "docs": [
+            "PDA seeds: [POOL_SEED]"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "lock_record",
+          "docs": [
+            "PDA seeds: [LOCK_SEED, loan_id.to_le_bytes()]"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  99,
+                  107
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "loan_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "loan_id",
+          "type": "u64"
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "unlock_collateral",
+      "discriminator": [
+        167,
+        213,
+        221,
+        147,
+        129,
+        209,
+        132,
+        190
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "pool_state",
+          "docs": [
+            "PDA seeds: [POOL_SEED]"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "lock_record",
+          "docs": [
+            "PDA seeds: [LOCK_SEED, loan_id.to_le_bytes()]"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  99,
+                  107
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "loan_id"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "loan_id",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "LockRecord",
+      "discriminator": [
+        157,
+        145,
+        17,
+        26,
+        171,
+        35,
+        61,
+        131
+      ]
+    },
+    {
+      "name": "PoolState",
+      "discriminator": [
+        247,
+        237,
+        227,
+        245,
+        215,
+        195,
+        222,
+        70
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "CollateralLocked",
+      "discriminator": [
+        185,
+        146,
+        119,
+        8,
+        41,
+        179,
+        88,
+        96
+      ]
+    },
+    {
+      "name": "CollateralUnlocked",
+      "discriminator": [
+        195,
+        248,
+        152,
+        155,
+        116,
+        178,
+        189,
+        221
+      ]
+    },
+    {
+      "name": "PoolDeposited",
+      "discriminator": [
+        148,
+        17,
+        86,
+        50,
+        113,
+        125,
+        70,
+        132
+      ]
+    },
+    {
+      "name": "PoolInitialized",
+      "discriminator": [
+        100,
+        118,
+        173,
+        87,
+        12,
+        198,
+        254,
+        229
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Unauthorized",
+      "msg": "Signer is not the configured pool authority"
+    },
+    {
+      "code": 6001,
+      "name": "InsufficientAvailableCollateral",
+      "msg": "Requested lock exceeds the available (unlocked) collateral"
+    },
+    {
+      "code": 6002,
+      "name": "MathOverflow",
+      "msg": "Arithmetic overflow"
+    }
+  ],
+  "types": [
+    {
+      "name": "CollateralLocked",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "loan_id",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "total_locked",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CollateralUnlocked",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "loan_id",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "total_locked",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LockRecord",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "loan_id",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PoolDeposited",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "depositor",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "total_deposited",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PoolInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PoolState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "total_deposited",
+            "type": "u64"
+          },
+          {
+            "name": "total_locked",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "vault_bump",
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ],
+  "constants": [
+    {
+      "name": "LOCK_SEED",
+      "type": "bytes",
+      "value": "[108, 111, 99, 107]"
+    },
+    {
+      "name": "POOL_SEED",
+      "type": "bytes",
+      "value": "[112, 111, 111, 108]"
+    },
+    {
+      "name": "POOL_VAULT_SEED",
+      "type": "bytes",
+      "value": "[112, 111, 111, 108, 95, 118, 97, 117, 108, 116]"
+    }
+  ]
+}

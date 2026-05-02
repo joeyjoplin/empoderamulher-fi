@@ -1,0 +1,390 @@
+{
+  "address": "CwVqgcBCZtGPYtCrvkFfLpBwhEXLvsb8Cr3KMsiyK655",
+  "metadata": {
+    "name": "rwa_token",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "EmpowerFI RWA token (Token-2022 with controlled mint)"
+  },
+  "instructions": [
+    {
+      "name": "burn_rwa",
+      "discriminator": [
+        251,
+        87,
+        212,
+        205,
+        163,
+        97,
+        197,
+        91
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "token_config",
+          "docs": [
+            "PDA seeds: [TOKEN_CONFIG_SEED]"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  119,
+                  97,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "writable": true,
+          "relations": [
+            "token_config"
+          ]
+        },
+        {
+          "name": "from_ata",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initialize_token_config",
+      "discriminator": [
+        60,
+        14,
+        114,
+        86,
+        25,
+        84,
+        93,
+        149
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "token_config",
+          "docs": [
+            "PDA seeds: [TOKEN_CONFIG_SEED]"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  119,
+                  97,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "docs": [
+            "Token-2022 Mint with the TokenConfig PDA as mint and freeze authority."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "decimals",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "mint_rwa",
+      "discriminator": [
+        113,
+        187,
+        15,
+        206,
+        117,
+        139,
+        168,
+        102
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "token_config",
+          "docs": [
+            "PDA seeds: [TOKEN_CONFIG_SEED]"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  119,
+                  97,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "writable": true,
+          "relations": [
+            "token_config"
+          ]
+        },
+        {
+          "name": "recipient_ata",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "TokenConfig",
+      "discriminator": [
+        92,
+        73,
+        255,
+        43,
+        107,
+        51,
+        117,
+        101
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "RwaTokenBurned",
+      "discriminator": [
+        19,
+        117,
+        231,
+        234,
+        33,
+        39,
+        221,
+        11
+      ]
+    },
+    {
+      "name": "RwaTokenMinted",
+      "discriminator": [
+        1,
+        237,
+        204,
+        243,
+        57,
+        201,
+        121,
+        34
+      ]
+    },
+    {
+      "name": "TokenConfigInitialized",
+      "discriminator": [
+        216,
+        229,
+        55,
+        155,
+        204,
+        69,
+        244,
+        40
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Unauthorized",
+      "msg": "Signer is not the configured authority"
+    },
+    {
+      "code": 6001,
+      "name": "MathOverflow",
+      "msg": "Arithmetic overflow"
+    }
+  ],
+  "types": [
+    {
+      "name": "RwaTokenBurned",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "from",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RwaTokenMinted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TokenConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "total_supply",
+            "type": "u64"
+          },
+          {
+            "name": "decimals",
+            "type": "u8"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TokenConfigInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "decimals",
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ],
+  "constants": [
+    {
+      "name": "TOKEN_CONFIG_SEED",
+      "type": "bytes",
+      "value": "[114, 119, 97, 95, 116, 111, 107, 101, 110, 95, 99, 111, 110, 102, 105, 103]"
+    }
+  ]
+}

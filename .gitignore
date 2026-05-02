@@ -28,6 +28,14 @@ target/
 test-ledger/
 .anchor/
 
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.env
+
 # OS
 .DS_Store
 Thumbs.db
@@ -36,3 +44,5 @@ Thumbs.db
 BLUEPRINT.md
 CLAUDE.md
 PLAN_3_WEEKS.md
+.superstack/
+DEMO_SCRIPT.md

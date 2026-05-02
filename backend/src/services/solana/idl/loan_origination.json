@@ -1,0 +1,1000 @@
+{
+  "address": "99SfPmytt5sJrmCfvpjiG1WdPMCY9b9iNd8KLVdmBLPU",
+  "metadata": {
+    "name": "loan_origination",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "EmpowerFI loan origination program (request, approve, disburse, repay, close)"
+  },
+  "instructions": [
+    {
+      "name": "approve_loan",
+      "discriminator": [
+        223,
+        27,
+        77,
+        138,
+        94,
+        172,
+        21,
+        209
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "loan_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  97,
+                  110,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "borrower",
+          "relations": [
+            "loan"
+          ]
+        },
+        {
+          "name": "loan",
+          "docs": [
+            "PDA seeds: [LOAN_SEED, borrower, loan_id.to_le_bytes()]"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  97,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "borrower"
+              },
+              {
+                "kind": "arg",
+                "path": "loan_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_state",
+          "writable": true
+        },
+        {
+          "name": "lock_record",
+          "writable": true
+        },
+        {
+          "name": "collateral_pool_program",
+          "address": "9DqYSPMWaPBhoJ883KfgiaCiTgCWcZ9qhz4GBQ4CNrTw"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "loan_id",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "close_loan",
+      "discriminator": [
+        96,
+        114,
+        111,
+        204,
+        149,
+        228,
+        235,
+        124
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "loan_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  97,
+                  110,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "borrower",
+          "relations": [
+            "loan"
+          ]
+        },
+        {
+          "name": "loan",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  97,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "borrower"
+              },
+              {
+                "kind": "arg",
+                "path": "loan_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_state",
+          "writable": true
+        },
+        {
+          "name": "lock_record",
+          "writable": true
+        },
+        {
+          "name": "collateral_pool_program",
+          "address": "9DqYSPMWaPBhoJ883KfgiaCiTgCWcZ9qhz4GBQ4CNrTw"
+        }
+      ],
+      "args": [
+        {
+          "name": "loan_id",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "disburse_loan",
+      "discriminator": [
+        115,
+        159,
+        152,
+        253,
+        201,
+        29,
+        29,
+        174
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "loan_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  97,
+                  110,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "borrower",
+          "relations": [
+            "loan"
+          ]
+        },
+        {
+          "name": "loan",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  97,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "borrower"
+              },
+              {
+                "kind": "arg",
+                "path": "loan_id"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "loan_id",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initialize_loan_config",
+      "discriminator": [
+        164,
+        160,
+        170,
+        75,
+        198,
+        132,
+        254,
+        66
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "loan_config",
+          "docs": [
+            "PDA seeds: [LOAN_CONFIG_SEED]"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  97,
+                  110,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "repay_installment",
+      "discriminator": [
+        113,
+        130,
+        233,
+        104,
+        65,
+        2,
+        233,
+        21
+      ],
+      "accounts": [
+        {
+          "name": "borrower",
+          "signer": true,
+          "relations": [
+            "loan",
+            "repayment_schedule"
+          ]
+        },
+        {
+          "name": "loan",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  97,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "borrower"
+              },
+              {
+                "kind": "arg",
+                "path": "loan_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "repayment_schedule",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  99,
+                  104,
+                  101,
+                  100,
+                  117,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "borrower"
+              },
+              {
+                "kind": "arg",
+                "path": "loan_id"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "loan_id",
+          "type": "u64"
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "request_loan",
+      "discriminator": [
+        120,
+        2,
+        7,
+        7,
+        1,
+        219,
+        235,
+        187
+      ],
+      "accounts": [
+        {
+          "name": "borrower",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "loan_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  97,
+                  110,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "loan",
+          "docs": [
+            "PDA seeds: [LOAN_SEED, borrower, loan_id.to_le_bytes()]"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  97,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "borrower"
+              },
+              {
+                "kind": "arg",
+                "path": "loan_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "repayment_schedule",
+          "docs": [
+            "PDA seeds: [SCHEDULE_SEED, borrower, loan_id.to_le_bytes()]"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  99,
+                  104,
+                  101,
+                  100,
+                  117,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "borrower"
+              },
+              {
+                "kind": "arg",
+                "path": "loan_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "loan_id",
+          "type": "u64"
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "term_months",
+          "type": "u8"
+        },
+        {
+          "name": "interest_rate_bps",
+          "type": "u16"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Loan",
+      "discriminator": [
+        20,
+        195,
+        70,
+        117,
+        165,
+        227,
+        182,
+        1
+      ]
+    },
+    {
+      "name": "LoanConfig",
+      "discriminator": [
+        123,
+        130,
+        235,
+        54,
+        45,
+        187,
+        118,
+        220
+      ]
+    },
+    {
+      "name": "RepaymentSchedule",
+      "discriminator": [
+        87,
+        163,
+        152,
+        157,
+        210,
+        78,
+        249,
+        216
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "InstallmentRepaid",
+      "discriminator": [
+        44,
+        68,
+        214,
+        11,
+        108,
+        199,
+        78,
+        236
+      ]
+    },
+    {
+      "name": "LoanApproved",
+      "discriminator": [
+        200,
+        165,
+        55,
+        199,
+        125,
+        213,
+        4,
+        243
+      ]
+    },
+    {
+      "name": "LoanClosed",
+      "discriminator": [
+        224,
+        57,
+        252,
+        104,
+        104,
+        185,
+        224,
+        107
+      ]
+    },
+    {
+      "name": "LoanConfigInitialized",
+      "discriminator": [
+        184,
+        241,
+        226,
+        243,
+        76,
+        4,
+        125,
+        8
+      ]
+    },
+    {
+      "name": "LoanDisbursed",
+      "discriminator": [
+        223,
+        190,
+        120,
+        135,
+        68,
+        98,
+        8,
+        248
+      ]
+    },
+    {
+      "name": "LoanRequested",
+      "discriminator": [
+        222,
+        179,
+        241,
+        111,
+        102,
+        135,
+        56,
+        56
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Unauthorized",
+      "msg": "Signer is not the configured authority"
+    },
+    {
+      "code": 6001,
+      "name": "InvalidStatus",
+      "msg": "Loan is not in the expected status for this operation"
+    },
+    {
+      "code": 6002,
+      "name": "AmountExceedsRemaining",
+      "msg": "Repayment amount exceeds the remaining balance"
+    },
+    {
+      "code": 6003,
+      "name": "InvalidTerm",
+      "msg": "Term in months must be greater than zero"
+    },
+    {
+      "code": 6004,
+      "name": "MathOverflow",
+      "msg": "Arithmetic overflow"
+    }
+  ],
+  "types": [
+    {
+      "name": "InstallmentRepaid",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "loan_id",
+            "type": "u64"
+          },
+          {
+            "name": "borrower",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "total_repaid",
+            "type": "u64"
+          },
+          {
+            "name": "installments_paid",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Loan",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "borrower",
+            "type": "pubkey"
+          },
+          {
+            "name": "loan_id",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "total_due",
+            "type": "u64"
+          },
+          {
+            "name": "total_repaid",
+            "type": "u64"
+          },
+          {
+            "name": "interest_rate_bps",
+            "type": "u16"
+          },
+          {
+            "name": "term_months",
+            "type": "u8"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "LoanStatus"
+              }
+            }
+          },
+          {
+            "name": "disbursed_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LoanApproved",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "loan_id",
+            "type": "u64"
+          },
+          {
+            "name": "borrower",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LoanClosed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "loan_id",
+            "type": "u64"
+          },
+          {
+            "name": "borrower",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LoanConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LoanConfigInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LoanDisbursed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "loan_id",
+            "type": "u64"
+          },
+          {
+            "name": "borrower",
+            "type": "pubkey"
+          },
+          {
+            "name": "disbursed_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LoanRequested",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "borrower",
+            "type": "pubkey"
+          },
+          {
+            "name": "loan_id",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "total_due",
+            "type": "u64"
+          },
+          {
+            "name": "term_months",
+            "type": "u8"
+          },
+          {
+            "name": "interest_rate_bps",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LoanStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Pending"
+          },
+          {
+            "name": "Approved"
+          },
+          {
+            "name": "Disbursed"
+          },
+          {
+            "name": "Repaid"
+          },
+          {
+            "name": "Closed"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PoolState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "total_deposited",
+            "type": "u64"
+          },
+          {
+            "name": "total_locked",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "vault_bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RepaymentSchedule",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "borrower",
+            "type": "pubkey"
+          },
+          {
+            "name": "loan_id",
+            "type": "u64"
+          },
+          {
+            "name": "installment_count",
+            "type": "u8"
+          },
+          {
+            "name": "installments_paid",
+            "type": "u8"
+          },
+          {
+            "name": "installment_amount",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ],
+  "constants": [
+    {
+      "name": "BPS_DENOMINATOR",
+      "type": "u64",
+      "value": "10000"
+    },
+    {
+      "name": "LOAN_CONFIG_SEED",
+      "type": "bytes",
+      "value": "[108, 111, 97, 110, 95, 99, 111, 110, 102, 105, 103]"
+    },
+    {
+      "name": "LOAN_SEED",
+      "type": "bytes",
+      "value": "[108, 111, 97, 110]"
+    },
+    {
+      "name": "SCHEDULE_SEED",
+      "type": "bytes",
+      "value": "[115, 99, 104, 101, 100, 117, 108, 101]"
+    }
+  ]
+}
