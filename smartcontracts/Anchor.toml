@@ -10,9 +10,16 @@ smartcontracts = "8naXy6dEdqVEqdfy1VXsHT2MPm1SRbjms6NZZVch676p"
 rwa_token = "CwVqgcBCZtGPYtCrvkFfLpBwhEXLvsb8Cr3KMsiyK655"
 collateral_pool = "9DqYSPMWaPBhoJ883KfgiaCiTgCWcZ9qhz4GBQ4CNrTw"
 loan_origination = "99SfPmytt5sJrmCfvpjiG1WdPMCY9b9iNd8KLVdmBLPU"
+score = "HiFPcEVC89FHAYTRS5gHMDRGCS8YBMpKrTTcXVqLKP5d"
+
+[programs.devnet]
+rwa_token = "CwVqgcBCZtGPYtCrvkFfLpBwhEXLvsb8Cr3KMsiyK655"
+collateral_pool = "9DqYSPMWaPBhoJ883KfgiaCiTgCWcZ9qhz4GBQ4CNrTw"
+loan_origination = "99SfPmytt5sJrmCfvpjiG1WdPMCY9b9iNd8KLVdmBLPU"
+score = "HiFPcEVC89FHAYTRS5gHMDRGCS8YBMpKrTTcXVqLKP5d"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

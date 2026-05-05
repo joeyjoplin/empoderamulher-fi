@@ -7,6 +7,8 @@ export {
   poolPda,
   poolVaultPda,
   repaymentSchedulePda,
+  scoreConfigPda,
+  scorePda,
   tokenConfigPda,
 } from "./pdas.js";
 
@@ -53,3 +55,18 @@ export {
   type RepayInstallmentParams,
   type CloseLoanParams,
 } from "./loan.js";
+
+export {
+  cnpjHmac,
+  initializeScoreConfig,
+  attestScore,
+  fetchScore,
+  revokeScore,
+  type InitializeScoreConfigParams,
+  type InitializeScoreConfigResult,
+  type AttestScoreParams,
+  type AttestScoreResult,
+  type FetchScoreResult,
+  type RevokeScoreParams,
+  type ScoreBreakdown,
+} from "./score.js";

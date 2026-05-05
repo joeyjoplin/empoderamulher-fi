@@ -1,44 +1,121 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Send } from "lucide-react";
+import { ApiError } from "@/api/client";
+import {
+  sendChatMessage,
+  type ChatHistoryMessage,
+  type SuggestedAction,
+  type SuggestedActionTarget,
+} from "@/api/chat";
+import { useApiClient } from "@/api/ApiClientProvider";
 import { usePersona } from "@/context/PersonaContext";
-import { findResponse, initialMessage, suggestions } from "@/data/chatResponses";
+import { renderInline } from "@/lib/inline-markdown";
 
-type Message = { id: string; from: "ai" | "user"; text: string };
+type Message = {
+  id: string;
+  from: "ai" | "user";
+  text: string;
+  actions?: SuggestedAction[];
+};
+
+const INITIAL_PROMPTS = [
+  "Como está meu negócio?",
+  "Como funciona o juros do EmpowerFI?",
+  "Como está minha pontuação?",
+  "Posso adiantar o pagamento?",
+];
+
+const TARGET_TO_ROUTE: Record<SuggestedActionTarget, string> = {
+  dashboard: "/dashboard",
+  credit: "/credit/offer",
+  score: "/score",
+  marketplace: "/marketplace",
+  insight: "/dashboard",
+};
 
 export function ChatInterface() {
   const { current } = usePersona();
+  const apiClient = useApiClient();
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([
-    { id: "init", from: "ai", text: initialMessage.replace("Maria", current.firstName) },
+    {
+      id: "init",
+      from: "ai",
+      text: `Oi ${current.firstName}, em que posso te ajudar hoje?`,
+    },
   ]);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    scrollRef.current?.scrollTo({
+      top: scrollRef.current.scrollHeight,
+      behavior: "smooth",
+    });
   }, [messages, typing]);
 
-  const send = (text: string) => {
+  const send = async (text: string) => {
     const trimmed = text.trim();
-    if (!trimmed) return;
+    if (!trimmed || typing) return;
+    setError(null);
+
     const userMsg: Message = { id: `${Date.now()}-u`, from: "user", text: trimmed };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setTyping(true);
-    window.setTimeout(() => {
-      const reply = findResponse(trimmed).replace("Maria", current.firstName);
-      setMessages((prev) => [...prev, { id: `${Date.now()}-a`, from: "ai", text: reply }]);
+
+    const history: ChatHistoryMessage[] = messages
+      .filter((m) => m.id !== "init")
+      .map((m) => ({
+        role: m.from === "ai" ? "assistant" : "user",
+        content: m.text,
+      }));
+
+    try {
+      const reply = await sendChatMessage(apiClient, {
+        message: trimmed,
+        history,
+      });
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `${Date.now()}-a`,
+          from: "ai",
+          text: reply.response,
+          actions: reply.suggestedActions,
+        },
+      ]);
+    } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : "Algo deu errado por aqui. Pode tentar de novo?";
+      setError(message);
+    } finally {
       setTyping(false);
-    }, 900);
+    }
   };
 
   return (
     <div className="flex h-[100dvh] flex-col bg-background">
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
         <div className="container-mobile flex h-14 items-center gap-3">
-          <Link to="/dashboard" aria-label="Voltar" className="tap-target -ml-2 flex items-center justify-center rounded-md hover:bg-muted">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <Link
+            to="/dashboard"
+            aria-label="Voltar"
+            className="tap-target -ml-2 flex items-center justify-center rounded-md hover:bg-muted"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M15 18l-6-6 6-6" />
             </svg>
           </Link>
@@ -56,20 +133,37 @@ export function ChatInterface() {
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
         <div className="container-mobile space-y-3 py-4">
           {messages.map((m) => (
-            <div
-              key={m.id}
-              className={["flex animate-fade-in", m.from === "user" ? "justify-end" : "justify-start"].join(" ")}
-            >
+            <div key={m.id} className="space-y-2">
               <div
                 className={[
-                  "max-w-[85%] whitespace-pre-line rounded-2xl px-4 py-2.5 text-[15px] leading-relaxed shadow-sm",
-                  m.from === "user"
-                    ? "rounded-br-sm bg-primary text-primary-foreground"
-                    : "rounded-bl-sm border border-border bg-card text-foreground",
+                  "flex animate-fade-in",
+                  m.from === "user" ? "justify-end" : "justify-start",
                 ].join(" ")}
               >
-                {m.text}
+                <div
+                  className={[
+                    "max-w-[85%] whitespace-pre-line rounded-2xl px-4 py-2.5 text-[15px] leading-relaxed shadow-sm",
+                    m.from === "user"
+                      ? "rounded-br-sm bg-primary text-primary-foreground"
+                      : "rounded-bl-sm border border-border bg-card text-foreground",
+                  ].join(" ")}
+                >
+                  {renderInline(m.text)}
+                </div>
               </div>
+              {m.from === "ai" && m.actions && m.actions.length > 0 ? (
+                <div className="flex flex-wrap gap-2 pl-1">
+                  {m.actions.map((a) => (
+                    <button
+                      key={`${m.id}-${a.target}`}
+                      onClick={() => navigate(TARGET_TO_ROUTE[a.target])}
+                      className="rounded-full border border-primary/30 bg-primary/10 px-3.5 py-2 text-xs font-medium text-primary hover:bg-primary/15"
+                    >
+                      {a.label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </div>
           ))}
 
@@ -83,9 +177,15 @@ export function ChatInterface() {
             </div>
           ) : null}
 
-          {messages.length === 1 ? (
+          {error ? (
+            <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              {error}
+            </div>
+          ) : null}
+
+          {messages.length === 1 && !typing ? (
             <div className="flex flex-wrap gap-2 pt-2">
-              {suggestions.map((s) => (
+              {INITIAL_PROMPTS.map((s) => (
                 <button
                   key={s}
                   onClick={() => send(s)}
@@ -115,12 +215,14 @@ export function ChatInterface() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Pergunte alguma coisa..."
-            className="tap-target flex-1 rounded-full border border-border bg-card px-4 text-[15px] outline-none ring-primary/20 focus:ring-2"
+            disabled={typing}
+            className="tap-target flex-1 rounded-full border border-border bg-card px-4 text-[15px] outline-none ring-primary/20 focus:ring-2 disabled:opacity-50"
           />
           <button
             type="submit"
             aria-label="Enviar"
-            className="tap-target flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/95"
+            disabled={typing || !input.trim()}
+            className="tap-target flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/95 disabled:opacity-50"
           >
             <Send className="h-4 w-4" />
           </button>

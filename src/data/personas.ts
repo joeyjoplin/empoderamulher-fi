@@ -21,7 +21,7 @@ export type Persona = {
 
 export const personas: Persona[] = [
   {
-    id: "maria",
+    id: "3149a890-d1b4-5da8-a033-4de0049901a6",
     name: "Maria Silva",
     firstName: "Maria",
     age: 38,
@@ -39,7 +39,7 @@ export const personas: Persona[] = [
     obligationsShortfall: 380,
   },
   {
-    id: "ana",
+    id: "24b94c87-a85c-5214-827f-695615794ed8",
     name: "Ana Souza",
     firstName: "Ana",
     age: 45,
@@ -57,8 +57,8 @@ export const personas: Persona[] = [
     obligationsShortfall: 200,
   },
   {
-    id: "julia",
-    name: "Julia Mendes",
+    id: "30d75b75-6f76-5d9f-8021-9b082b45af27",
+    name: "Julia Lima",
     firstName: "Julia",
     age: 32,
     city: "Belo Horizonte, MG",
@@ -79,4 +79,4 @@ export const personas: Persona[] = [
   initials: p.name.split(" ").map((n) => n[0]).slice(0, 2).join(""),
 }));
 
-export const defaultPersonaId = "maria";
+export const defaultPersonaId = "3149a890-d1b4-5da8-a033-4de0049901a6";

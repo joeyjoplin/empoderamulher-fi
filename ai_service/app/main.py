@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 
 from app.api.v1 import chat as chat_router
 from app.api.v1 import insights as insights_router
+from app.api.v1 import score as score_router
 from app.config import get_settings
 
 
@@ -42,6 +43,7 @@ def create_app() -> FastAPI:
 
     app.include_router(chat_router.router, prefix="/api/v1")
     app.include_router(insights_router.router, prefix="/api/v1")
+    app.include_router(score_router.router, prefix="/api/v1")
 
     return app
 

@@ -3,8 +3,10 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { PersonaProvider } from "@/context/PersonaContext";
+import { ApiClientProvider, useDefaultApiClient } from "@/api/ApiClientProvider";
+import { PersonaProvider, usePersona } from "@/context/PersonaContext";
 import { ImpactProvider } from "@/context/ImpactContext";
+import type { ReactNode } from "react";
 import Index from "./pages/Index.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
 import InsightDetail from "./pages/InsightDetail.tsx";
@@ -22,12 +24,19 @@ import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
 
+function ApiClientFromPersona({ children }: { children: ReactNode }) {
+  const { current } = usePersona();
+  const client = useDefaultApiClient(current.id);
+  return <ApiClientProvider value={client}>{children}</ApiClientProvider>;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <PersonaProvider>
+        <ApiClientFromPersona>
         <ImpactProvider>
           <BrowserRouter>
             <Routes>
@@ -50,6 +59,7 @@ const App = () => (
             </Routes>
           </BrowserRouter>
         </ImpactProvider>
+        </ApiClientFromPersona>
       </PersonaProvider>
     </TooltipProvider>
   </QueryClientProvider>

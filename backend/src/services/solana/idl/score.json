@@ -1,0 +1,508 @@
+{
+  "address": "HiFPcEVC89FHAYTRS5gHMDRGCS8YBMpKrTTcXVqLKP5d",
+  "metadata": {
+    "name": "score",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "EmpowerFI on-chain Score-as-a-Service (privacy-preserving CNPJ-keyed score)"
+  },
+  "instructions": [
+    {
+      "name": "attest_score",
+      "discriminator": [
+        43,
+        103,
+        32,
+        97,
+        108,
+        253,
+        99,
+        3
+      ],
+      "accounts": [
+        {
+          "name": "attestor",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "docs": [
+            "PDA seeds: [SCORE_CONFIG_SEED]"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  99,
+                  111,
+                  114,
+                  101,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "score",
+          "docs": [
+            "PDA seeds: [SCORE_SEED, cnpj_hmac]"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  99,
+                  111,
+                  114,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "cnpj_hmac"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "cnpj_hmac",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "total",
+          "type": "u16"
+        },
+        {
+          "name": "breakdown",
+          "type": {
+            "defined": {
+              "name": "ScoreBreakdown"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "initialize_score_config",
+      "discriminator": [
+        41,
+        201,
+        105,
+        158,
+        52,
+        56,
+        221,
+        18
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "docs": [
+            "PDA seeds: [SCORE_CONFIG_SEED]"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  99,
+                  111,
+                  114,
+                  101,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "attestor",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "revoke_score",
+      "discriminator": [
+        3,
+        246,
+        228,
+        86,
+        146,
+        17,
+        187,
+        2
+      ],
+      "accounts": [
+        {
+          "name": "attestor",
+          "signer": true
+        },
+        {
+          "name": "config",
+          "docs": [
+            "PDA seeds: [SCORE_CONFIG_SEED]"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  99,
+                  111,
+                  114,
+                  101,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "score",
+          "docs": [
+            "PDA seeds: [SCORE_SEED, cnpj_hmac]"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  99,
+                  111,
+                  114,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "cnpj_hmac"
+              }
+            ]
+          }
+        },
+        {
+          "name": "recipient",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "cnpj_hmac",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Score",
+      "discriminator": [
+        187,
+        110,
+        62,
+        119,
+        232,
+        235,
+        185,
+        90
+      ]
+    },
+    {
+      "name": "ScoreConfig",
+      "discriminator": [
+        150,
+        113,
+        251,
+        218,
+        0,
+        146,
+        67,
+        39
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "ScoreAttested",
+      "discriminator": [
+        152,
+        152,
+        41,
+        97,
+        104,
+        162,
+        33,
+        127
+      ]
+    },
+    {
+      "name": "ScoreConfigInitialized",
+      "discriminator": [
+        20,
+        110,
+        40,
+        37,
+        96,
+        126,
+        24,
+        118
+      ]
+    },
+    {
+      "name": "ScoreRevoked",
+      "discriminator": [
+        74,
+        225,
+        127,
+        60,
+        169,
+        157,
+        166,
+        110
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Unauthorized",
+      "msg": "Signer is not the configured attestor"
+    },
+    {
+      "code": 6001,
+      "name": "ScoreOutOfRange",
+      "msg": "Score value exceeds the allowed maximum (1000)"
+    }
+  ],
+  "types": [
+    {
+      "name": "Score",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "cnpj_hmac",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "total_score",
+            "type": "u16"
+          },
+          {
+            "name": "discipline_score",
+            "type": "u16"
+          },
+          {
+            "name": "organization_score",
+            "type": "u16"
+          },
+          {
+            "name": "cash_flow_score",
+            "type": "u16"
+          },
+          {
+            "name": "engagement_score",
+            "type": "u16"
+          },
+          {
+            "name": "last_updated_at",
+            "type": "i64"
+          },
+          {
+            "name": "attestor",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ScoreAttested",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "cnpj_hmac",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "total_score",
+            "type": "u16"
+          },
+          {
+            "name": "attestor",
+            "type": "pubkey"
+          },
+          {
+            "name": "last_updated_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ScoreBreakdown",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "discipline",
+            "type": "u16"
+          },
+          {
+            "name": "organization",
+            "type": "u16"
+          },
+          {
+            "name": "cash_flow",
+            "type": "u16"
+          },
+          {
+            "name": "engagement",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ScoreConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "attestor",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ScoreConfigInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "attestor",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ScoreRevoked",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "cnpj_hmac",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "attestor",
+            "type": "pubkey"
+          }
+        ]
+      }
+    }
+  ],
+  "constants": [
+    {
+      "name": "SCORE_CONFIG_SEED",
+      "type": "bytes",
+      "value": "[115, 99, 111, 114, 101, 95, 99, 111, 110, 102, 105, 103]"
+    },
+    {
+      "name": "SCORE_SEED",
+      "type": "bytes",
+      "value": "[115, 99, 111, 114, 101]"
+    }
+  ]
+}

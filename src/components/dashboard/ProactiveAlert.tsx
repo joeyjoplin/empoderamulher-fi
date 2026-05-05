@@ -1,32 +1,65 @@
 import { AlertCircle, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
-import { usePersona } from "@/context/PersonaContext";
+
+import type {
+  ProactiveAlert as ProactiveAlertData,
+  ProactiveAlertSuggestion,
+} from "@/api/insights";
+import { useProactiveAlert } from "@/hooks/useProactiveAlert";
 import { formatBRL } from "@/lib/format";
+import { renderInline } from "@/lib/inline-markdown";
 
-export function ProactiveAlert() {
-  const { current } = usePersona();
+type SuggestionView = {
+  id: string;
+  to: string;
+  label: string;
+  sub: string;
+  primary: boolean;
+};
 
-  const actions = [
-    {
-      id: "antecipar",
-      label: "Antecipar recebíveis",
-      sub: "Custo estimado: R$ 18",
-      primary: false,
-    },
-    {
-      id: "renegociar",
-      label: "Renegociar com fornecedor",
-      sub: "Já consultei: ele aceita 2x",
-      primary: false,
-    },
-    {
-      id: "credito",
-      label: "Crédito EmpowerFI",
-      sub: "R$ 380 a 4% a.m. — economia de R$ 20 vs cheque especial",
-      primary: true,
-    },
-  ];
+function suggestionToView(s: ProactiveAlertSuggestion): SuggestionView {
+  switch (s.type) {
+    case "anticipation":
+      return {
+        id: "antecipar",
+        to: "/insights/antecipar",
+        label: "Antecipar recebíveis",
+        sub: `Custo estimado: ${formatBRL(s.estimatedCost)}`,
+        primary: false,
+      };
+    case "supplier_renegotiation":
+      return {
+        id: "renegociar",
+        to: "/insights/renegociar",
+        label: `Renegociar com ${s.supplierName}`,
+        sub: `Viabilidade: ${
+          s.feasibility === "high"
+            ? "alta"
+            : s.feasibility === "medium"
+              ? "média"
+              : "baixa"
+        }`,
+        primary: false,
+      };
+    case "empowerfi_credit": {
+      const qs = new URLSearchParams({
+        amount: String(s.amount),
+        termMonths: "1",
+        monthlyRate: String(s.monthlyRate),
+      });
+      return {
+        id: "credito",
+        to: `/insights/credito?${qs.toString()}`,
+        label: "Crédito EmpowerFI",
+        sub: `${formatBRL(s.amount)} a ${(s.monthlyRate * 100).toFixed(1)}% a.m. — economia de ${formatBRL(s.vsOverdraftSavings)} vs cheque especial`,
+        primary: true,
+      };
+    }
+  }
+}
 
+function ProactiveAlertView({ data }: { data: ProactiveAlertData }) {
+  const actions = data.suggestions.map(suggestionToView);
   return (
     <article
       className="rounded-xl border border-highlight bg-highlight p-5 shadow-sm animate-slide-in"
@@ -40,21 +73,22 @@ export function ProactiveAlert() {
         </span>
       </div>
 
-      <h2 id="alert-title" className="text-lg font-semibold leading-snug text-primary">
-        {current.firstName}, vi uma coisa que precisa da sua atenção
+      <h2
+        id="alert-title"
+        className="text-lg font-semibold leading-snug text-primary"
+      >
+        Tenho um alerta para você
       </h2>
 
-      <p className="mt-2 text-[15px] leading-relaxed text-foreground/90">
-        Daqui {current.obligationsDays} dias você tem {formatBRL(current.obligationsTotal)} em obrigações
-        (DAS, fornecedor e aluguel). No seu ritmo de recebimento, vai faltar{" "}
-        <strong className="font-semibold">{formatBRL(current.obligationsShortfall)}</strong>.
+      <p className="mt-2 whitespace-pre-line text-[15px] leading-relaxed text-foreground/90">
+        {renderInline(data.naturalLanguageAlert)}
       </p>
 
       <div className="mt-5 flex flex-col gap-2.5">
         {actions.map((a) => (
           <Link
             key={a.id}
-            to={`/insights/${a.id}`}
+            to={a.to}
             className={[
               "tap-target group flex items-center justify-between rounded-lg border px-4 py-3 transition-colors",
               a.primary
@@ -64,7 +98,14 @@ export function ProactiveAlert() {
           >
             <div className="text-left">
               <div className="text-[15px] font-semibold">{a.label}</div>
-              <div className={["mt-0.5 text-xs", a.primary ? "text-primary-foreground/80" : "text-muted-foreground"].join(" ")}>
+              <div
+                className={[
+                  "mt-0.5 text-xs",
+                  a.primary
+                    ? "text-primary-foreground/80"
+                    : "text-muted-foreground",
+                ].join(" ")}
+              >
                 {a.sub}
               </div>
             </div>
@@ -74,4 +115,28 @@ export function ProactiveAlert() {
       </div>
     </article>
   );
+}
+
+function ProactiveAlertSkeleton() {
+  return (
+    <article
+      className="rounded-xl border border-highlight bg-highlight p-5 shadow-sm"
+      aria-busy="true"
+      aria-label="Carregando alerta"
+    >
+      <div className="h-3 w-32 animate-pulse rounded bg-muted" />
+      <div className="mt-3 h-5 w-3/4 animate-pulse rounded bg-muted" />
+      <div className="mt-2 h-4 w-full animate-pulse rounded bg-muted" />
+      <div className="mt-1 h-4 w-5/6 animate-pulse rounded bg-muted" />
+    </article>
+  );
+}
+
+export function ProactiveAlert() {
+  const state = useProactiveAlert();
+
+  if (state.status === "loading") return <ProactiveAlertSkeleton />;
+  if (state.status === "error") return null;
+  if (!state.data.alert) return null;
+  return <ProactiveAlertView data={state.data} />;
 }

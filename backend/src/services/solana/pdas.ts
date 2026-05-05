@@ -6,6 +6,7 @@ export const PROGRAM_IDS = {
   rwaToken: "CwVqgcBCZtGPYtCrvkFfLpBwhEXLvsb8Cr3KMsiyK655",
   collateralPool: "9DqYSPMWaPBhoJ883KfgiaCiTgCWcZ9qhz4GBQ4CNrTw",
   loanOrigination: "99SfPmytt5sJrmCfvpjiG1WdPMCY9b9iNd8KLVdmBLPU",
+  score: "HiFPcEVC89FHAYTRS5gHMDRGCS8YBMpKrTTcXVqLKP5d",
 } as const;
 
 const TOKEN_CONFIG_SEED = Buffer.from("rwa_token_config");
@@ -15,6 +16,8 @@ const LOCK_SEED = Buffer.from("lock");
 const LOAN_CONFIG_SEED = Buffer.from("loan_config");
 const LOAN_SEED = Buffer.from("loan");
 const SCHEDULE_SEED = Buffer.from("schedule");
+const SCORE_CONFIG_SEED = Buffer.from("score_config");
+const SCORE_SEED = Buffer.from("score");
 
 /**
  * Encode a u64 loan id as 8 little-endian bytes.
@@ -81,5 +84,24 @@ export function repaymentSchedulePda(
   return PublicKey.findProgramAddressSync(
     [SCHEDULE_SEED, borrower.toBuffer(), loanIdLeBytes(loanId)],
     loanOriginationProgramId,
+  );
+}
+
+export function scoreConfigPda(
+  scoreProgramId: PublicKey,
+): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync([SCORE_CONFIG_SEED], scoreProgramId);
+}
+
+export function scorePda(
+  scoreProgramId: PublicKey,
+  cnpjHmac: Uint8Array,
+): [PublicKey, number] {
+  if (cnpjHmac.length !== 32) {
+    throw new Error("cnpjHmac must be exactly 32 bytes (HMAC-SHA256 output)");
+  }
+  return PublicKey.findProgramAddressSync(
+    [SCORE_SEED, Buffer.from(cnpjHmac)],
+    scoreProgramId,
   );
 }

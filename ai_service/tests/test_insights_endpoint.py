@@ -10,7 +10,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
-from app.api.deps import get_anthropic_client, get_db_session
+from app.api.deps import get_anthropic_client, get_db_session, get_now
 from app.db.models import Base, Persona
 from app.main import create_app
 from app.services.persona_seeder import seed_personas
@@ -51,6 +51,7 @@ def insights_client(
 
     app.dependency_overrides[get_db_session] = override_session
     app.dependency_overrides[get_anthropic_client] = lambda: fake_anthropic
+    app.dependency_overrides[get_now] = lambda: FROZEN_NOW
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()

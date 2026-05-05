@@ -9,6 +9,13 @@ const envSchema = z.object({
     .enum(["fatal", "error", "warn", "info", "debug", "trace"])
     .default("info"),
   CORS_ALLOW_ORIGINS: z.string().default("*"),
+  SCORE_HMAC_PEPPER: z.string().min(32).optional(),
+  SOLANA_RPC_URL: z.string().url().optional(),
+  SOLANA_PAYER_SECRET_KEY: z.string().min(1).optional(),
+  SOLANA_AIRDROP_BORROWER: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((v) => v === "true"),
 });
 
 export type Env = z.infer<typeof envSchema>;

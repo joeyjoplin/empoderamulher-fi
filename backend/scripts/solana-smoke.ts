@@ -20,7 +20,13 @@
  *   SOLANA_PAYER_SECRET_KEY=<base58> npm run smoke:solana
  */
 
-import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
+import {
+  Keypair,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+  SystemProgram,
+  Transaction,
+} from "@solana/web3.js";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   TOKEN_2022_PROGRAM_ID,
@@ -36,15 +42,43 @@ import {
   fetchPoolState,
   initializeLoanConfig,
   initializePool,
+  initializeScoreConfig,
   initializeTokenConfig,
   loanConfigPda,
   mintRwa,
   poolPda,
   repayInstallment,
   requestLoan,
+  scoreConfigPda,
   tokenConfigPda,
   type SolanaClient,
 } from "../src/services/solana/index.js";
+
+async function fundFromPayer(
+  client: SolanaClient,
+  recipient: PublicKey,
+  lamports: number,
+): Promise<void> {
+  const tx = new Transaction().add(
+    SystemProgram.transfer({
+      fromPubkey: client.payer.publicKey,
+      toPubkey: recipient,
+      lamports,
+    }),
+  );
+  const { blockhash, lastValidBlockHeight } =
+    await client.connection.getLatestBlockhash();
+  tx.recentBlockhash = blockhash;
+  tx.lastValidBlockHeight = lastValidBlockHeight;
+  tx.feePayer = client.payer.publicKey;
+  tx.sign(client.payer);
+  const sig = await client.connection.sendRawTransaction(tx.serialize());
+  await client.connection.confirmTransaction({
+    signature: sig,
+    blockhash,
+    lastValidBlockHeight,
+  });
+}
 
 async function ensureTokenConfig(client: SolanaClient): Promise<PublicKey> {
   const [tokenConfig] = tokenConfigPda(client.programIds.rwaToken);
@@ -85,6 +119,19 @@ async function ensureLoanConfig(client: SolanaClient): Promise<void> {
   console.log("loanConfig already exists; skipping init");
 }
 
+async function ensureScoreConfig(client: SolanaClient): Promise<void> {
+  const [scoreConfig] = scoreConfigPda(client.programIds.score);
+  const info = await client.connection.getAccountInfo(scoreConfig);
+  if (info === null) {
+    const result = await initializeScoreConfig(client, {
+      attestor: client.payer.publicKey,
+    });
+    console.log("initializeScoreConfig:", result);
+    return;
+  }
+  console.log("scoreConfig already exists; skipping init");
+}
+
 async function main() {
   const rpcUrl = process.env.SOLANA_RPC_URL ?? "http://localhost:8899";
   const payerSecretKey = process.env.SOLANA_PAYER_SECRET_KEY;
@@ -104,17 +151,9 @@ async function main() {
   // 1. Ensure RWA mint exists and grab its address.
   const mint = await ensureTokenConfig(client);
 
-  // 2. Mint to investor.
+  // 2. Mint to investor. Fund from payer (devnet faucet is rate-limited).
   const investor = Keypair.generate();
-  const investorAirdrop = await connection.requestAirdrop(
-    investor.publicKey,
-    2 * LAMPORTS_PER_SOL,
-  );
-  const latest1 = await connection.getLatestBlockhash();
-  await connection.confirmTransaction({
-    signature: investorAirdrop,
-    ...latest1,
-  });
+  await fundFromPayer(client, investor.publicKey, 0.05 * LAMPORTS_PER_SOL);
 
   const minted = await mintRwa(client, {
     mint,
@@ -144,17 +183,10 @@ async function main() {
 
   // 4. Loan flow (loan_id is per-run, so its PDAs are always fresh).
   await ensureLoanConfig(client);
+  await ensureScoreConfig(client);
 
   const borrower = Keypair.generate();
-  const borrowerAirdrop = await connection.requestAirdrop(
-    borrower.publicKey,
-    2 * LAMPORTS_PER_SOL,
-  );
-  const latest2 = await connection.getLatestBlockhash();
-  await connection.confirmTransaction({
-    signature: borrowerAirdrop,
-    ...latest2,
-  });
+  await fundFromPayer(client, borrower.publicKey, 0.05 * LAMPORTS_PER_SOL);
 
   const loanId = BigInt(Math.floor(Date.now() / 1000));
   const requested = await requestLoan(client, {

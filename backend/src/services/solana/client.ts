@@ -11,9 +11,11 @@ import bs58 from "bs58";
 import collateralPoolIdl from "./idl/collateral_pool.json" with { type: "json" };
 import loanOriginationIdl from "./idl/loan_origination.json" with { type: "json" };
 import rwaTokenIdl from "./idl/rwa_token.json" with { type: "json" };
+import scoreIdl from "./idl/score.json" with { type: "json" };
 import type { CollateralPool } from "./idl/collateral_pool.js";
 import type { LoanOrigination } from "./idl/loan_origination.js";
 import type { RwaToken } from "./idl/rwa_token.js";
+import type { Score } from "./idl/score.js";
 import { PROGRAM_IDS } from "./pdas.js";
 
 export type SolanaClientConfig = {
@@ -35,11 +37,13 @@ export type SolanaClient = {
     rwaToken: anchor.Program<RwaToken>;
     collateralPool: anchor.Program<CollateralPool>;
     loanOrigination: anchor.Program<LoanOrigination>;
+    score: anchor.Program<Score>;
   };
   programIds: {
     rwaToken: PublicKey;
     collateralPool: PublicKey;
     loanOrigination: PublicKey;
+    score: PublicKey;
   };
 };
 
@@ -63,16 +67,21 @@ export function createSolanaClient(config: SolanaClientConfig): SolanaClient {
     loanOriginationIdl as Idl as LoanOrigination,
     provider,
   );
+  const score = new anchor.Program<Score>(
+    scoreIdl as Idl as Score,
+    provider,
+  );
 
   return {
     connection,
     provider,
     payer,
-    programs: { rwaToken, collateralPool, loanOrigination },
+    programs: { rwaToken, collateralPool, loanOrigination, score },
     programIds: {
       rwaToken: new PublicKey(PROGRAM_IDS.rwaToken),
       collateralPool: new PublicKey(PROGRAM_IDS.collateralPool),
       loanOrigination: new PublicKey(PROGRAM_IDS.loanOrigination),
+      score: new PublicKey(PROGRAM_IDS.score),
     },
   };
 }

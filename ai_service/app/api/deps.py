@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Iterator
 
 from sqlalchemy.orm import Session
@@ -25,3 +26,9 @@ def get_db_session() -> Iterator[Session]:
     factory = get_session_factory()
     with factory() as session:
         yield session
+
+
+def get_now() -> datetime:
+    """FastAPI dependency: current UTC time. Tests override this to freeze the
+    clock against the seeded persona's calibrated obligation calendar."""
+    return datetime.now(timezone.utc)

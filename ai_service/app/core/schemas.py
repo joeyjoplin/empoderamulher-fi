@@ -11,12 +11,24 @@ class ChatMessage(BaseModel):
 
 
 class ChatRequest(BaseModel):
+    persona_id: UUID
     message: str = Field(min_length=1, max_length=4_000)
     history: list[ChatMessage] = Field(default_factory=list)
 
 
+SuggestedActionTarget = Literal[
+    "dashboard", "credit", "score", "marketplace", "insight"
+]
+
+
+class SuggestedAction(BaseModel):
+    label: str = Field(min_length=1, max_length=80)
+    target: SuggestedActionTarget
+
+
 class ChatResponse(BaseModel):
     response: str
+    suggested_actions: list[SuggestedAction] = Field(default_factory=list)
 
 
 # --- Insights ----------------------------------------------------------
@@ -61,3 +73,22 @@ class CashFlowAlertResponse(BaseModel):
     deficit_window_days: int
     natural_language_alert: str
     suggestions: list[Suggestion]
+
+
+# --- Score -------------------------------------------------------------
+
+class ScoreCalculateRequest(BaseModel):
+    persona_id: UUID
+
+
+class ScoreBreakdownPayload(BaseModel):
+    discipline: int = Field(ge=0, le=250)
+    organization: int = Field(ge=0, le=250)
+    cash_flow: int = Field(ge=0, le=250)
+    engagement: int = Field(ge=0, le=250)
+
+
+class ScoreCalculateResponse(BaseModel):
+    persona_id: UUID
+    total: int = Field(ge=0, le=1000)
+    breakdown: ScoreBreakdownPayload

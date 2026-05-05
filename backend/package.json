@@ -4,14 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "node --env-file=.env --import tsx --watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "gen:idl": "bash scripts/copy-idl.sh",
-    "smoke:solana": "tsx scripts/solana-smoke.ts"
+    "smoke:solana": "node --env-file=.env --import tsx scripts/solana-smoke.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.0",

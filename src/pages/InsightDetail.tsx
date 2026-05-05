@@ -1,14 +1,44 @@
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { AppHeader } from "@/components/AppHeader";
-import { ContrafactualCompare, LoanDetailsCollapse } from "@/components/credit/ContrafactualCompare";
+import {
+  ContrafactualCompare,
+  LoanDetailsCollapse,
+} from "@/components/credit/ContrafactualCompare";
+import { formatBRL } from "@/lib/format";
+
+const DEFAULT_AMOUNT = 380;
+const DEFAULT_TERM_MONTHS = 1;
+const DEFAULT_EMPOWERFI_RATE = 0.04;
+
+function parseNumberParam(
+  raw: string | null,
+  fallback: number,
+  { min = 0 }: { min?: number } = {},
+): number {
+  if (raw === null) return fallback;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed < min) return fallback;
+  return parsed;
+}
 
 export default function InsightDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [params] = useSearchParams();
 
+  const amount = parseNumberParam(params.get("amount"), DEFAULT_AMOUNT, { min: 1 });
+  const termMonths = Math.max(
+    1,
+    Math.round(parseNumberParam(params.get("termMonths"), DEFAULT_TERM_MONTHS)),
+  );
+  const empowerFiRate = parseNumberParam(
+    params.get("monthlyRate"),
+    DEFAULT_EMPOWERFI_RATE,
+    { min: 0 },
+  );
+
   const titleMap: Record<string, string> = {
-    credito: "Crédito EmpowerFI: R$ 380",
+    credito: `Crédito EmpowerFI: ${formatBRL(amount)}`,
     antecipar: "Antecipar recebíveis",
     renegociar: "Renegociar com fornecedor",
   };
@@ -20,16 +50,27 @@ export default function InsightDetail() {
 
       <main className="container-mobile space-y-5 py-5">
         <div className="animate-fade-in">
-          <h1 className="text-2xl font-semibold leading-tight tracking-tight text-primary">{title}</h1>
+          <h1 className="text-2xl font-semibold leading-tight tracking-tight text-primary">
+            {title}
+          </h1>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            Você precisa de R$ 380 para fechar o mês sem usar o cheque especial. Veja como cada
-            opção te custa, lado a lado, antes de decidir.
+            Você precisa de {formatBRL(amount)} para fechar o mês sem usar o
+            cheque especial. Veja como cada opção te custa, lado a lado, antes
+            de decidir.
           </p>
         </div>
 
-        <ContrafactualCompare />
+        <ContrafactualCompare
+          amount={amount}
+          termMonths={termMonths}
+          empowerFiRate={empowerFiRate}
+        />
 
-        <LoanDetailsCollapse />
+        <LoanDetailsCollapse
+          amount={amount}
+          termMonths={termMonths}
+          empowerFiRate={empowerFiRate}
+        />
 
         <div className="space-y-2.5 pt-2">
           <button
