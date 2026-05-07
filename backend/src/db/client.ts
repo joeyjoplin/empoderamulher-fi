@@ -1,5 +1,5 @@
 import { drizzle } from "drizzle-orm/postgres-js";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import postgres from "postgres";
 
 import type { PersonaService } from "../services/persona.js";
@@ -7,6 +7,46 @@ import type { Persona } from "../types/domain.js";
 import { personas } from "./schema.js";
 
 export type Database = ReturnType<typeof drizzle>;
+
+/**
+ * Idempotent bootstrap for the indexer-owned tables. The AI service uses
+ * SQLAlchemy `create_all` for `personas` / `transactions`; this is the
+ * equivalent for the backend's own tables. No migration framework yet —
+ * acceptable for the hackathon, swap for drizzle-kit when scope allows.
+ */
+export async function ensureIndexerSchema(db: Database): Promise<void> {
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS impact_events (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      program_id text NOT NULL,
+      program_name text NOT NULL,
+      event_name text NOT NULL,
+      signature text NOT NULL,
+      slot bigint NOT NULL,
+      block_time timestamptz,
+      event_index integer NOT NULL,
+      payload jsonb NOT NULL,
+      created_at timestamptz NOT NULL DEFAULT now()
+    )
+  `);
+  await db.execute(sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS impact_events_signature_event_idx
+      ON impact_events (signature, event_index)
+  `);
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS impact_events_program_block_idx
+      ON impact_events (program_name, block_time)
+  `);
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS indexer_cursors (
+      program_id text PRIMARY KEY,
+      program_name text NOT NULL,
+      last_signature text,
+      last_slot bigint,
+      updated_at timestamptz NOT NULL DEFAULT now()
+    )
+  `);
+}
 
 export function createDatabase(databaseUrl: string): {
   db: Database;

@@ -66,6 +66,17 @@ def _seeded_rng(slug: str) -> random.Random:
     return random.Random(int.from_bytes(slug.encode(), "little"))
 
 
+# Stable demo wallet pubkeys per persona. With SOLANA_AIRDROP_BORROWER=true
+# the backend generates an ephemeral signer per loan, so these pubkeys are
+# logical handles only — they're persisted on each persona row so the
+# `/credit/request` route stops 409'ing after a re-seed.
+PERSONA_WALLET_PUBKEYS: dict[str, str] = {
+    "maria": "BcZmHLn41QZcvEvnmQkbqYz1Jo6iRdy4U3Y8BcwaCZNX",
+    "ana": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    "julia": "So11111111111111111111111111111111111111112",
+}
+
+
 # --- Maria ---------------------------------------------------------------
 
 def _generate_maria(now: datetime) -> GeneratedPersona:
@@ -157,7 +168,7 @@ def _generate_maria(now: datetime) -> GeneratedPersona:
         city="São Paulo",
         monthly_revenue_avg=Decimal("4500.00"),
         stage=2,
-        wallet_pubkey=None,
+        wallet_pubkey=PERSONA_WALLET_PUBKEYS["maria"],
         transactions=tuple(txs),
     )
 
@@ -212,7 +223,7 @@ def _generate_ana(now: datetime) -> GeneratedPersona:
         city="Belo Horizonte",
         monthly_revenue_avg=Decimal("3200.00"),
         stage=1,
-        wallet_pubkey=None,
+        wallet_pubkey=PERSONA_WALLET_PUBKEYS["ana"],
         transactions=tuple(txs),
     )
 
@@ -273,7 +284,7 @@ def _generate_julia(now: datetime) -> GeneratedPersona:
         city="Curitiba",
         monthly_revenue_avg=Decimal("8200.00"),
         stage=4,
-        wallet_pubkey=None,
+        wallet_pubkey=PERSONA_WALLET_PUBKEYS["julia"],
         transactions=tuple(txs),
     )
 

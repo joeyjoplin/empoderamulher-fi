@@ -5,10 +5,17 @@ import { loadEnv } from "./config/env.js";
 import {
   DrizzlePersonaService,
   createDatabase,
+  ensureIndexerSchema,
   ping,
 } from "./db/client.js";
 import { createLogger } from "./middleware/logger.js";
 import { HttpChatService } from "./services/chat.js";
+import {
+  ConnectionSignatureFetcher,
+  DrizzleCursorStore,
+  DrizzleEventStore,
+  IndexerWorker,
+} from "./services/indexer/index.js";
 import { HttpInsightsService } from "./services/insights.js";
 import {
   InMemoryLoanRepository,
@@ -20,7 +27,11 @@ import {
   UnconfiguredScoreService,
   type ScoreService,
 } from "./services/score_service.js";
-import { createSolanaClient } from "./services/solana/index.js";
+import { createSolanaClient, PROGRAM_IDS } from "./services/solana/index.js";
+import collateralPoolIdl from "./services/solana/idl/collateral_pool.json" with { type: "json" };
+import loanOriginationIdl from "./services/solana/idl/loan_origination.json" with { type: "json" };
+import rwaTokenIdl from "./services/solana/idl/rwa_token.json" with { type: "json" };
+import scoreIdl from "./services/solana/idl/score.json" with { type: "json" };
 import { SolanaLoanService } from "./services/solana_loan_service.js";
 
 async function main() {
@@ -40,8 +51,11 @@ async function main() {
   const insightsService = new HttpInsightsService({ baseUrl: env.AI_SERVICE_URL });
   const chatService = new HttpChatService({ baseUrl: env.AI_SERVICE_URL });
 
+  await ensureIndexerSchema(db);
+
   let loanService: LoanService;
   let scoreService: ScoreService;
+  let indexer: IndexerWorker | null = null;
   if (env.SOLANA_RPC_URL && env.SOLANA_PAYER_SECRET_KEY) {
     const solanaClient = createSolanaClient({
       rpcUrl: env.SOLANA_RPC_URL,
@@ -69,12 +83,44 @@ async function main() {
         "score service: unconfigured (set SCORE_HMAC_PEPPER to enable on-chain attest)",
       );
     }
+
+    indexer = new IndexerWorker({
+      programs: [
+        {
+          name: "rwa_token",
+          programId: PROGRAM_IDS.rwaToken,
+          idl: rwaTokenIdl as never,
+        },
+        {
+          name: "collateral_pool",
+          programId: PROGRAM_IDS.collateralPool,
+          idl: collateralPoolIdl as never,
+        },
+        {
+          name: "loan_origination",
+          programId: PROGRAM_IDS.loanOrigination,
+          idl: loanOriginationIdl as never,
+        },
+        {
+          name: "score",
+          programId: PROGRAM_IDS.score,
+          idl: scoreIdl as never,
+        },
+      ],
+      fetcher: new ConnectionSignatureFetcher(solanaClient.connection),
+      events: new DrizzleEventStore(db),
+      cursors: new DrizzleCursorStore(db),
+      logger,
+      pollIntervalMs: env.INDEXER_POLL_INTERVAL_MS,
+    });
+    indexer.start();
   } else {
     loanService = new UnconfiguredLoanService();
     scoreService = new UnconfiguredScoreService();
     logger.warn(
       "loan + score services unconfigured (set SOLANA_RPC_URL + SOLANA_PAYER_SECRET_KEY)",
     );
+    logger.warn("indexer worker disabled (no Solana client available)");
   }
   const loanRepository = new InMemoryLoanRepository();
 
@@ -92,6 +138,14 @@ async function main() {
 
   logger.info({ port: env.PORT, authMode: env.AUTH_MODE }, "starting server");
   serve({ fetch: app.fetch, port: env.PORT });
+
+  const shutdown = async (signal: string) => {
+    logger.info({ signal }, "shutting down");
+    if (indexer) await indexer.stop();
+    process.exit(0);
+  };
+  process.once("SIGINT", () => void shutdown("SIGINT"));
+  process.once("SIGTERM", () => void shutdown("SIGTERM"));
 }
 
 main().catch((err) => {
