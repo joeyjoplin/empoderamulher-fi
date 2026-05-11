@@ -22,7 +22,18 @@ import {
   UnconfiguredLoanService,
   type LoanService,
 } from "./services/loans.js";
+import {
+  InMemoryMarketplaceRepository,
+  UnconfiguredMarketplaceService,
+  type MarketplaceService,
+} from "./services/marketplace.js";
 import { OrchestratedScoreService } from "./services/orchestrated_score_service.js";
+import { SolanaMarketplaceService } from "./services/solana_marketplace_service.js";
+import {
+  OrchestratedPublicScoreService,
+  UnconfiguredPublicScoreService,
+  type PublicScoreService,
+} from "./services/public_score_service.js";
 import {
   UnconfiguredScoreService,
   type ScoreService,
@@ -30,6 +41,7 @@ import {
 import { createSolanaClient, PROGRAM_IDS } from "./services/solana/index.js";
 import collateralPoolIdl from "./services/solana/idl/collateral_pool.json" with { type: "json" };
 import loanOriginationIdl from "./services/solana/idl/loan_origination.json" with { type: "json" };
+import marketplaceIdl from "./services/solana/idl/marketplace.json" with { type: "json" };
 import rwaTokenIdl from "./services/solana/idl/rwa_token.json" with { type: "json" };
 import scoreIdl from "./services/solana/idl/score.json" with { type: "json" };
 import { SolanaLoanService } from "./services/solana_loan_service.js";
@@ -55,6 +67,8 @@ async function main() {
 
   let loanService: LoanService;
   let scoreService: ScoreService;
+  let publicScoreService: PublicScoreService = new UnconfiguredPublicScoreService();
+  let marketplaceService: MarketplaceService = new UnconfiguredMarketplaceService();
   let indexer: IndexerWorker | null = null;
   if (env.SOLANA_RPC_URL && env.SOLANA_PAYER_SECRET_KEY) {
     const solanaClient = createSolanaClient({
@@ -65,9 +79,13 @@ async function main() {
       client: solanaClient,
       airdropBorrower: env.SOLANA_AIRDROP_BORROWER,
     });
+    marketplaceService = new SolanaMarketplaceService({
+      client: solanaClient,
+      airdropSigners: env.SOLANA_AIRDROP_BORROWER,
+    });
     logger.info(
       { rpcUrl: env.SOLANA_RPC_URL, airdrop: env.SOLANA_AIRDROP_BORROWER },
-      "loan service: SolanaLoanService",
+      "loan + marketplace services: Solana orchestrators",
     );
 
     if (env.SCORE_HMAC_PEPPER) {
@@ -76,7 +94,11 @@ async function main() {
         aiServiceUrl: env.AI_SERVICE_URL,
         hmacPepper: env.SCORE_HMAC_PEPPER,
       });
-      logger.info("score service: OrchestratedScoreService");
+      publicScoreService = new OrchestratedPublicScoreService({
+        client: solanaClient,
+        hmacPepper: env.SCORE_HMAC_PEPPER,
+      });
+      logger.info("score service: OrchestratedScoreService (public + persona)");
     } else {
       scoreService = new UnconfiguredScoreService();
       logger.warn(
@@ -106,6 +128,11 @@ async function main() {
           programId: PROGRAM_IDS.score,
           idl: scoreIdl as never,
         },
+        {
+          name: "marketplace",
+          programId: PROGRAM_IDS.marketplace,
+          idl: marketplaceIdl as never,
+        },
       ],
       fetcher: new ConnectionSignatureFetcher(solanaClient.connection),
       events: new DrizzleEventStore(db),
@@ -123,13 +150,17 @@ async function main() {
     logger.warn("indexer worker disabled (no Solana client available)");
   }
   const loanRepository = new InMemoryLoanRepository();
+  const marketplaceRepository = new InMemoryMarketplaceRepository();
 
   const app = createApp({
     personaService,
     insightsService,
     loanService,
     loanRepository,
+    marketplaceService,
+    marketplaceRepository,
     scoreService,
+    publicScoreService,
     chatService,
     authMode: env.AUTH_MODE,
     logger,

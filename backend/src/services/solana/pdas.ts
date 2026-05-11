@@ -7,6 +7,7 @@ export const PROGRAM_IDS = {
   collateralPool: "9DqYSPMWaPBhoJ883KfgiaCiTgCWcZ9qhz4GBQ4CNrTw",
   loanOrigination: "99SfPmytt5sJrmCfvpjiG1WdPMCY9b9iNd8KLVdmBLPU",
   score: "HiFPcEVC89FHAYTRS5gHMDRGCS8YBMpKrTTcXVqLKP5d",
+  marketplace: "2BVJn1DY6Kzni1rXgc1ysZRNPRyKhmWZpyRYSh8x6ouh",
 } as const;
 
 const TOKEN_CONFIG_SEED = Buffer.from("rwa_token_config");

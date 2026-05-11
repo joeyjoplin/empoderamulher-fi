@@ -2,22 +2,31 @@ import { AppHeader } from "@/components/AppHeader";
 import { marketplaceListings } from "@/data/impactData";
 import { formatBRL } from "@/lib/format";
 import { useImpact } from "@/context/ImpactContext";
-import { Heart, Loader2 } from "lucide-react";
+import { useApiClient } from "@/api/ApiClientProvider";
+import { ApiError } from "@/api/client";
+import { hireProvider, type CompletedHire } from "@/api/marketplace";
+import { AlertCircle, Heart, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 
 const STEPS = [
-  "Registrando transação na blockchain...",
-  "Notificando vendedora...",
+  "Registrando solicitação on-chain...",
+  "Confirmando pagamento...",
   "Concluindo...",
 ];
+
+type Status =
+  | { kind: "idle" }
+  | { kind: "loading"; step: number }
+  | { kind: "error"; message: string };
 
 export default function ContratarPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const client = useApiClient();
   const { registerHire } = useImpact();
   const merchant = marketplaceListings.find((m) => m.id === id);
-  const [step, setStep] = useState(-1);
+  const [status, setStatus] = useState<Status>({ kind: "idle" });
 
   if (!merchant || merchant.isSelf) {
     return (
@@ -33,36 +42,63 @@ export default function ContratarPage() {
     );
   }
 
-  const start = () => {
-    setStep(0);
-    setTimeout(() => setStep(1), 1000);
-    setTimeout(() => setStep(2), 2000);
-    setTimeout(() => {
+  const start = async () => {
+    setStatus({ kind: "loading", step: 0 });
+    // Soft progress hint while the on-chain create→pay round-trip lands.
+    const stepTimer = window.setInterval(() => {
+      setStatus((s) =>
+        s.kind === "loading" && s.step < STEPS.length - 1
+          ? { kind: "loading", step: s.step + 1 }
+          : s,
+      );
+    }, 1200);
+
+    try {
+      const completed: CompletedHire = await hireProvider(client, {
+        providerPersonaId: merchant.personaId,
+        amountCents: Math.round(merchant.itemPrice * 100),
+        category: merchant.category,
+        memo: `${merchant.specialty} — ${merchant.itemHighlight}`,
+      });
+      window.clearInterval(stepTimer);
       registerHire();
       navigate("/marketplace/sucesso", {
-        state: { merchantName: merchant.sellerName.replace(" (Você)", ""), amount: merchant.itemPrice },
+        state: {
+          merchantName: merchant.sellerName.replace(" (Você)", ""),
+          amount: merchant.itemPrice,
+          hire: completed,
+        },
       });
-    }, 3000);
+    } catch (err) {
+      window.clearInterval(stepTimer);
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Não conseguimos registrar a contratação agora.";
+      setStatus({ kind: "error", message });
+    }
   };
 
-  if (step >= 0) {
+  if (status.kind === "loading") {
     return (
       <div className="min-h-screen bg-background">
-        <AppHeader title="Contratando" showBack />
+        <AppHeader title="Contratando" />
         <main className="container-mobile space-y-6 py-10">
           {STEPS.map((label, i) => (
             <div
               key={i}
               className={[
                 "flex items-center gap-3 rounded-lg border p-3 transition-opacity",
-                i <= step ? "border-border bg-card opacity-100" : "border-dashed border-border opacity-40",
+                i <= status.step ? "border-border bg-card opacity-100" : "border-dashed border-border opacity-40",
               ].join(" ")}
             >
-              {i < step ? (
+              {i < status.step ? (
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-success text-[11px] text-success-foreground">
                   ✓
                 </span>
-              ) : i === step ? (
+              ) : i === status.step ? (
                 <Loader2 className="h-5 w-5 animate-spin text-primary" />
               ) : (
                 <span className="h-5 w-5 rounded-full border border-border" />
@@ -70,6 +106,39 @@ export default function ContratarPage() {
               <span className="text-sm text-foreground">{label}</span>
             </div>
           ))}
+        </main>
+      </div>
+    );
+  }
+
+  if (status.kind === "error") {
+    return (
+      <div className="min-h-screen bg-background">
+        <AppHeader title="Confirmar contratação" showBack />
+        <main className="container-mobile py-10">
+          <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-center shadow-sm">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
+              <AlertCircle className="h-7 w-7 text-destructive" />
+            </div>
+            <h1 className="mt-4 text-lg font-semibold text-primary">
+              Não conseguimos contratar agora
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground">{status.message}</p>
+            <button
+              type="button"
+              onClick={start}
+              className="tap-target mt-5 w-full rounded-lg bg-primary px-5 py-3 text-[15px] font-semibold text-primary-foreground hover:bg-primary/95"
+            >
+              Tentar novamente
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/marketplace")}
+              className="tap-target mt-2 w-full rounded-lg border border-border bg-card px-5 py-3 text-[15px] font-semibold text-foreground hover:bg-muted"
+            >
+              Voltar para o marketplace
+            </button>
+          </div>
         </main>
       </div>
     );

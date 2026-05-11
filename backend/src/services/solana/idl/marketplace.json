@@ -1,0 +1,527 @@
+{
+  "address": "2BVJn1DY6Kzni1rXgc1ysZRNPRyKhmWZpyRYSh8x6ouh",
+  "metadata": {
+    "name": "marketplace",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "EmpowerFI marketplace — authorized B2B payment requests between entrepreneurs"
+  },
+  "instructions": [
+    {
+      "name": "cancel_request",
+      "discriminator": [
+        65,
+        196,
+        177,
+        247,
+        83,
+        151,
+        33,
+        130
+      ],
+      "accounts": [
+        {
+          "name": "canceller",
+          "signer": true
+        },
+        {
+          "name": "request",
+          "docs": [
+            "PDA seeds: [PAYMENT_SEED, buyer, provider, nonce_le_bytes]",
+            "",
+            "Authorisation lives in the `constraint` below — `canceller` must be",
+            "either `request.from` (buyer) or `request.to` (provider)."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  121,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "request.from",
+                "account": "PaymentRequest"
+              },
+              {
+                "kind": "account",
+                "path": "request.to",
+                "account": "PaymentRequest"
+              },
+              {
+                "kind": "arg",
+                "path": "nonce"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "nonce",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "create_payment_request",
+      "discriminator": [
+        246,
+        150,
+        103,
+        37,
+        15,
+        36,
+        93,
+        100
+      ],
+      "accounts": [
+        {
+          "name": "provider",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "buyer",
+          "docs": [
+            "will sign separately when they call `pay_request`."
+          ]
+        },
+        {
+          "name": "request",
+          "docs": [
+            "PDA seeds: [PAYMENT_SEED, buyer, provider, nonce_le_bytes]"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  121,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "buyer"
+              },
+              {
+                "kind": "account",
+                "path": "provider"
+              },
+              {
+                "kind": "arg",
+                "path": "nonce"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "nonce",
+          "type": "u64"
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "category",
+          "type": {
+            "defined": {
+              "name": "PaymentCategory"
+            }
+          }
+        },
+        {
+          "name": "memo",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "pay_request",
+      "discriminator": [
+        182,
+        174,
+        240,
+        192,
+        60,
+        83,
+        75,
+        174
+      ],
+      "accounts": [
+        {
+          "name": "buyer",
+          "signer": true
+        },
+        {
+          "name": "request",
+          "docs": [
+            "PDA seeds: [PAYMENT_SEED, buyer, provider, nonce_le_bytes]"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  121,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "buyer"
+              },
+              {
+                "kind": "account",
+                "path": "request.to",
+                "account": "PaymentRequest"
+              },
+              {
+                "kind": "arg",
+                "path": "nonce"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "nonce",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "PaymentRequest",
+      "discriminator": [
+        27,
+        20,
+        202,
+        96,
+        101,
+        242,
+        124,
+        69
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "PaymentCancelled",
+      "discriminator": [
+        137,
+        140,
+        226,
+        59,
+        55,
+        152,
+        253,
+        179
+      ]
+    },
+    {
+      "name": "PaymentCompleted",
+      "discriminator": [
+        157,
+        184,
+        146,
+        198,
+        243,
+        50,
+        113,
+        174
+      ]
+    },
+    {
+      "name": "PaymentRequestCreated",
+      "discriminator": [
+        186,
+        59,
+        96,
+        125,
+        65,
+        88,
+        209,
+        147
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InvalidStatus",
+      "msg": "Payment request is not in the expected status for this operation"
+    },
+    {
+      "code": 6001,
+      "name": "Unauthorized",
+      "msg": "Signer is neither the buyer nor the provider on this request"
+    },
+    {
+      "code": 6002,
+      "name": "MemoTooLong",
+      "msg": "Memo exceeds the maximum allowed length (200 bytes)"
+    },
+    {
+      "code": 6003,
+      "name": "InvalidAmount",
+      "msg": "Amount must be greater than zero"
+    }
+  ],
+  "types": [
+    {
+      "name": "PaymentCancelled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "request",
+            "type": "pubkey"
+          },
+          {
+            "name": "from",
+            "type": "pubkey"
+          },
+          {
+            "name": "to",
+            "type": "pubkey"
+          },
+          {
+            "name": "cancelled_by",
+            "type": "pubkey"
+          },
+          {
+            "name": "cancelled_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PaymentCategory",
+      "docs": [
+        "Coarse business category for impact-dashboard aggregation. Intentionally",
+        "minimal for the MVP — refine post-hackathon when the marketplace has real",
+        "usage signal."
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Supplies"
+          },
+          {
+            "name": "Packaging"
+          },
+          {
+            "name": "Services"
+          },
+          {
+            "name": "Other"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PaymentCompleted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "request",
+            "type": "pubkey"
+          },
+          {
+            "name": "from",
+            "type": "pubkey"
+          },
+          {
+            "name": "to",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "paid_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PaymentRequest",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "from",
+            "type": "pubkey"
+          },
+          {
+            "name": "to",
+            "type": "pubkey"
+          },
+          {
+            "name": "nonce",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "category",
+            "type": {
+              "defined": {
+                "name": "PaymentCategory"
+              }
+            }
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "PaymentStatus"
+              }
+            }
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "paid_at",
+            "docs": [
+              "Unix timestamp set when status transitions to Paid; 0 while Pending or Cancelled."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "cancelled_at",
+            "docs": [
+              "Unix timestamp set when status transitions to Cancelled; 0 otherwise."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "memo",
+            "type": "string"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PaymentRequestCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "request",
+            "type": "pubkey"
+          },
+          {
+            "name": "from",
+            "type": "pubkey"
+          },
+          {
+            "name": "to",
+            "type": "pubkey"
+          },
+          {
+            "name": "nonce",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "category",
+            "type": {
+              "defined": {
+                "name": "PaymentCategory"
+              }
+            }
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PaymentStatus",
+      "docs": [
+        "Lifecycle of a single payment request.",
+        "",
+        "Pending → Paid       (buyer settles via `pay_request`)",
+        "↓",
+        "Cancelled        (either party calls `cancel_request` while Pending)",
+        "",
+        "Once Paid or Cancelled the request is terminal — `pay_request` /",
+        "`cancel_request` reject anything that's not Pending. The PDA itself is",
+        "kept on-chain (not closed) so the off-chain indexer can reconcile the",
+        "final state from the `PaymentCompleted` / `PaymentCancelled` events."
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Pending"
+          },
+          {
+            "name": "Paid"
+          },
+          {
+            "name": "Cancelled"
+          }
+        ]
+      }
+    }
+  ],
+  "constants": [
+    {
+      "name": "PAYMENT_SEED",
+      "type": "bytes",
+      "value": "[112, 97, 121, 109, 101, 110, 116]"
+    }
+  ]
+}

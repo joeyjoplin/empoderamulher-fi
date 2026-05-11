@@ -37,6 +37,9 @@ function buildApp(chat: ChatService) {
       fetchOnChainForPersona: vi.fn(),
       attestForPersona: vi.fn(),
     },
+    publicScoreService: { lookupByCnpj: vi.fn() },
+    marketplaceService: { hireProvider: vi.fn() },
+    marketplaceRepository: { save: vi.fn(), countHiresByBuyer: vi.fn() },
     chatService: chat,
     authMode: "mock",
   });

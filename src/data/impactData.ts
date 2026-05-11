@@ -72,14 +72,24 @@ export const userImpact = {
 };
 
 // Listings fixos do marketplace
+export type MarketplaceCategory =
+  | "supplies"
+  | "packaging"
+  | "services"
+  | "other";
+
 export type MarketplaceListing = {
   id: string;
+  /** Real Supabase persona UUID — sent to the backend as `providerPersonaId`. */
+  personaId: string;
   sellerName: string;
   city: string;
   initials: string;
   specialty: string;
   itemHighlight: string;
   itemPrice: number;
+  /** Backend enum value passed verbatim to `POST /marketplace/hire`. */
+  category: MarketplaceCategory;
   verified: boolean;
   isSelf?: boolean;
 };
@@ -87,32 +97,38 @@ export type MarketplaceListing = {
 export const marketplaceListings: MarketplaceListing[] = [
   {
     id: "ana",
+    personaId: "24b94c87-a85c-5214-827f-695615794ed8",
     sellerName: "Ana Souza",
     city: "Salvador, BA",
     initials: "AS",
     specialty: "Embalagens artesanais",
     itemHighlight: "Kit 50 unidades",
     itemPrice: 80,
+    category: "packaging",
     verified: true,
   },
   {
     id: "julia",
-    sellerName: "Julia Mendes",
+    personaId: "30d75b75-6f76-5d9f-8021-9b082b45af27",
+    sellerName: "Julia Lima",
     city: "Belo Horizonte, MG",
-    initials: "JM",
+    initials: "JL",
     specialty: "Doces gourmet para revenda",
     itemHighlight: "Caixa 20 unidades",
     itemPrice: 150,
+    category: "supplies",
     verified: true,
   },
   {
     id: "maria",
+    personaId: "3149a890-d1b4-5da8-a033-4de0049901a6",
     sellerName: "Maria Silva (Você)",
     city: "São Paulo, SP",
     initials: "MS",
     specialty: "Bolos sob encomenda",
     itemHighlight: "A partir de R$ 65",
     itemPrice: 65,
+    category: "services",
     verified: true,
     isSelf: true,
   },

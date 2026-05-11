@@ -11,12 +11,14 @@ rwa_token = "CwVqgcBCZtGPYtCrvkFfLpBwhEXLvsb8Cr3KMsiyK655"
 collateral_pool = "9DqYSPMWaPBhoJ883KfgiaCiTgCWcZ9qhz4GBQ4CNrTw"
 loan_origination = "99SfPmytt5sJrmCfvpjiG1WdPMCY9b9iNd8KLVdmBLPU"
 score = "HiFPcEVC89FHAYTRS5gHMDRGCS8YBMpKrTTcXVqLKP5d"
+marketplace = "2BVJn1DY6Kzni1rXgc1ysZRNPRyKhmWZpyRYSh8x6ouh"
 
 [programs.devnet]
 rwa_token = "CwVqgcBCZtGPYtCrvkFfLpBwhEXLvsb8Cr3KMsiyK655"
 collateral_pool = "9DqYSPMWaPBhoJ883KfgiaCiTgCWcZ9qhz4GBQ4CNrTw"
 loan_origination = "99SfPmytt5sJrmCfvpjiG1WdPMCY9b9iNd8KLVdmBLPU"
 score = "HiFPcEVC89FHAYTRS5gHMDRGCS8YBMpKrTTcXVqLKP5d"
+marketplace = "2BVJn1DY6Kzni1rXgc1ysZRNPRyKhmWZpyRYSh8x6ouh"
 
 [provider]
 cluster = "devnet"

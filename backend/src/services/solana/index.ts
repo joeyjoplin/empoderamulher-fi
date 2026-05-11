@@ -70,3 +70,16 @@ export {
   type RevokeScoreParams,
   type ScoreBreakdown,
 } from "./score.js";
+
+export {
+  cancelRequest,
+  createPaymentRequest,
+  nonceLeBytes,
+  payRequest,
+  paymentRequestPda,
+  type CancelRequestParams,
+  type CreatePaymentRequestParams,
+  type CreatePaymentRequestResult,
+  type PayRequestParams,
+  type PaymentCategory,
+} from "./marketplace.js";

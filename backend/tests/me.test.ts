@@ -26,6 +26,9 @@ function buildApp() {
       fetchOnChainForPersona: vi.fn(),
       attestForPersona: vi.fn(),
     },
+    publicScoreService: { lookupByCnpj: vi.fn() },
+    marketplaceService: { hireProvider: vi.fn() },
+    marketplaceRepository: { save: vi.fn(), countHiresByBuyer: vi.fn() },
     chatService: { sendMessage: vi.fn() },
     authMode: "mock",
   });

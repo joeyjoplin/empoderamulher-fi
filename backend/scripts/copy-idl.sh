@@ -8,9 +8,9 @@ SRC="$ROOT/smartcontracts/target"
 DEST="$ROOT/backend/src/services/solana/idl"
 
 mkdir -p "$DEST"
-for prog in rwa_token collateral_pool loan_origination score; do
+for prog in rwa_token collateral_pool loan_origination score marketplace; do
   cp "$SRC/idl/$prog.json" "$DEST/$prog.json"
   cp "$SRC/types/$prog.ts" "$DEST/$prog.ts"
 done
 
-echo "Copied 4 IDLs + types to $DEST"
+echo "Copied 5 IDLs + types to $DEST"
