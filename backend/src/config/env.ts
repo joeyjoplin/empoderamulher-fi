@@ -21,6 +21,15 @@ const envSchema = z.object({
     .int()
     .positive()
     .default(10_000),
+  /**
+   * Comma-separated demo API keys for the public Score-as-a-Service sandbox.
+   * Each key must start with `lender_demo_` so the prefix gate accepts it.
+   * The frontend reads the same list (via build-time env) so the sandbox
+   * key picker stays in sync.
+   */
+  SCORE_SAAS_DEMO_KEYS: z
+    .string()
+    .default("lender_demo_a1b2c3d4ef,lender_demo_9z8y7x6w5v"),
 });
 
 export type Env = z.infer<typeof envSchema>;

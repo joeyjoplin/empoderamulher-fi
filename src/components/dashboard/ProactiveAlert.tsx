@@ -1,4 +1,5 @@
 import { AlertCircle, ArrowRight } from "lucide-react";
+import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 
 import type {
@@ -61,8 +62,11 @@ function suggestionToView(s: ProactiveAlertSuggestion): SuggestionView {
 function ProactiveAlertView({ data }: { data: ProactiveAlertData }) {
   const actions = data.suggestions.map(suggestionToView);
   return (
-    <article
-      className="rounded-xl border border-highlight bg-highlight p-5 shadow-sm animate-slide-in"
+    <motion.article
+      initial={{ opacity: 0, y: 12, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ type: "spring", stiffness: 220, damping: 22 }}
+      className="rounded-xl border border-highlight bg-highlight p-5 shadow-sm"
       style={{ borderLeftWidth: 4, borderLeftColor: "hsl(var(--accent))" }}
       aria-labelledby="alert-title"
     >
@@ -84,36 +88,52 @@ function ProactiveAlertView({ data }: { data: ProactiveAlertData }) {
         {renderInline(data.naturalLanguageAlert)}
       </p>
 
-      <div className="mt-5 flex flex-col gap-2.5">
+      <motion.div
+        className="mt-5 flex flex-col gap-2.5"
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: {},
+          visible: { transition: { staggerChildren: 0.08, delayChildren: 0.18 } },
+        }}
+      >
         {actions.map((a) => (
-          <Link
+          <motion.div
             key={a.id}
-            to={a.to}
-            className={[
-              "tap-target group flex items-center justify-between rounded-lg border px-4 py-3 transition-colors",
-              a.primary
-                ? "border-primary bg-primary text-primary-foreground hover:bg-primary/95"
-                : "border-border bg-card text-foreground hover:bg-muted",
-            ].join(" ")}
+            variants={{
+              hidden: { opacity: 0, y: 8 },
+              visible: { opacity: 1, y: 0 },
+            }}
+            transition={{ type: "spring", stiffness: 260, damping: 24 }}
           >
-            <div className="text-left">
-              <div className="text-[15px] font-semibold">{a.label}</div>
-              <div
-                className={[
-                  "mt-0.5 text-xs",
-                  a.primary
-                    ? "text-primary-foreground/80"
-                    : "text-muted-foreground",
-                ].join(" ")}
-              >
-                {a.sub}
+            <Link
+              to={a.to}
+              className={[
+                "tap-target group flex items-center justify-between rounded-lg border px-4 py-3 transition-colors",
+                a.primary
+                  ? "border-primary bg-primary text-primary-foreground hover:bg-primary/95"
+                  : "border-border bg-card text-foreground hover:bg-muted",
+              ].join(" ")}
+            >
+              <div className="text-left">
+                <div className="text-[15px] font-semibold">{a.label}</div>
+                <div
+                  className={[
+                    "mt-0.5 text-xs",
+                    a.primary
+                      ? "text-primary-foreground/80"
+                      : "text-muted-foreground",
+                  ].join(" ")}
+                >
+                  {a.sub}
+                </div>
               </div>
-            </div>
-            <ArrowRight className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
-          </Link>
+              <ArrowRight className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+          </motion.div>
         ))}
-      </div>
-    </article>
+      </motion.div>
+    </motion.article>
   );
 }
 

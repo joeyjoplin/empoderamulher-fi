@@ -22,6 +22,7 @@ const MARIA: Persona = {
   monthlyRevenueAvg: "4500.00",
   stage: 2,
   walletPubkey: "BcZmHLn41QZcvEvnmQkbqYz1Jo6iRdy4U3Y8BcwaCZNX",
+  cnpjDigits: null,
 };
 
 const FAKE_DISBURSED: DisbursedLoan = {
@@ -59,8 +60,10 @@ function buildApp(overrides: {
         attestForPersona: vi.fn(),
       },
       publicScoreService: { lookupByCnpj: vi.fn() },
+      publicScoreApiKeys: [],
       marketplaceService: { hireProvider: vi.fn() },
       marketplaceRepository: { save: vi.fn(), countHiresByBuyer: vi.fn() },
+      impactRepository: { recentEvents: vi.fn().mockResolvedValue([]) },
       chatService: { sendMessage: vi.fn() },
       authMode: "mock",
     }),
@@ -152,8 +155,10 @@ describe("POST /credit/request", () => {
         attestForPersona: vi.fn(),
       },
       publicScoreService: { lookupByCnpj: vi.fn() },
+      publicScoreApiKeys: [],
       marketplaceService: { hireProvider: vi.fn() },
       marketplaceRepository: { save: vi.fn(), countHiresByBuyer: vi.fn() },
+      impactRepository: { recentEvents: vi.fn().mockResolvedValue([]) },
       chatService: { sendMessage: vi.fn() },
       authMode: "mock",
     });

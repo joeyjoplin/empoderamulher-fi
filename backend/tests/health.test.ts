@@ -14,8 +14,10 @@ describe("GET /health", () => {
         attestForPersona: vi.fn(),
       },
       publicScoreService: { lookupByCnpj: vi.fn() },
+      publicScoreApiKeys: [],
       marketplaceService: { hireProvider: vi.fn() },
       marketplaceRepository: { save: vi.fn(), countHiresByBuyer: vi.fn() },
+      impactRepository: { recentEvents: vi.fn().mockResolvedValue([]) },
       chatService: { sendMessage: vi.fn() },
       authMode: "mock",
     });

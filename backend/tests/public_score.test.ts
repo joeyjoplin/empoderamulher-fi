@@ -24,9 +24,13 @@ const FAKE_RESULT: PublicScoreResponse = {
   onChainAddress: "ScorePdaBase58",
 };
 
+const VALID_KEY = "lender_demo_a1b2c3d4ef";
+const OTHER_KEY = "lender_demo_9z8y7x6w5v";
+
 function buildApp(opts: {
   publicScore: PublicScoreService;
   rateLimit?: { limit: number; windowMs: number; now?: () => number };
+  apiKeys?: readonly string[];
 }) {
   return createApp({
     personaService: new InMemoryPersonaService([]),
@@ -38,15 +42,18 @@ function buildApp(opts: {
       attestForPersona: vi.fn(),
     },
     publicScoreService: opts.publicScore,
+    publicScoreApiKeys: opts.apiKeys ?? [VALID_KEY, OTHER_KEY],
     marketplaceService: { hireProvider: vi.fn() },
     marketplaceRepository: { save: vi.fn(), countHiresByBuyer: vi.fn() },
+    impactRepository: { recentEvents: vi.fn().mockResolvedValue([]) },
     chatService: { sendMessage: vi.fn() },
     authMode: "mock",
     publicScoreRateLimit: opts.rateLimit
       ? {
           limit: opts.rateLimit.limit,
           windowMs: opts.rateLimit.windowMs,
-          // Stable key so the bucket is shared across requests in a test.
+          // Stable key so the bucket is shared across requests in a test
+          // when the per-API-key bucketing isn't what we're exercising.
           keyFn: () => "test-key",
           now: opts.rateLimit.now,
         }
@@ -60,12 +67,16 @@ const MARIA_CNPJ_DIGITS = "12345678000190";
 // still kicks in for any non-digit characters that don't break routing.
 const MARIA_CNPJ_DOTTED = "12.345.678.0001-90";
 
+const authHeader = { Authorization: `Bearer ${VALID_KEY}` };
+
 describe("GET /api/v1/score/:cnpj", () => {
   it("returns 200 with the snake_case score envelope on the happy path", async () => {
     const lookupByCnpj = vi.fn().mockResolvedValue(FAKE_RESULT);
     const app = buildApp({ publicScore: { lookupByCnpj } });
 
-    const res = await app.request(`/api/v1/score/${MARIA_CNPJ_DIGITS}`);
+    const res = await app.request(`/api/v1/score/${MARIA_CNPJ_DIGITS}`, {
+      headers: authHeader,
+    });
     expect(res.status).toBe(200);
     const body = (await res.json()) as DataBody<{
       total_score: number;
@@ -91,14 +102,15 @@ describe("GET /api/v1/score/:cnpj", () => {
       attestor: "AttestorPubkeyBase58",
       on_chain_address: "ScorePdaBase58",
     });
-    // Service receives stripped digits regardless of CNPJ formatting.
     expect(lookupByCnpj).toHaveBeenCalledWith(MARIA_CNPJ_DIGITS);
   });
 
   it("strips dot/dash separators from the CNPJ before lookup", async () => {
     const lookupByCnpj = vi.fn().mockResolvedValue(FAKE_RESULT);
     const app = buildApp({ publicScore: { lookupByCnpj } });
-    const res = await app.request(`/api/v1/score/${MARIA_CNPJ_DOTTED}`);
+    const res = await app.request(`/api/v1/score/${MARIA_CNPJ_DOTTED}`, {
+      headers: authHeader,
+    });
     expect(res.status).toBe(200);
     expect(lookupByCnpj).toHaveBeenCalledWith(MARIA_CNPJ_DIGITS);
   });
@@ -107,7 +119,9 @@ describe("GET /api/v1/score/:cnpj", () => {
     const app = buildApp({
       publicScore: { lookupByCnpj: vi.fn().mockResolvedValue(null) },
     });
-    const res = await app.request(`/api/v1/score/${MARIA_CNPJ_DIGITS}`);
+    const res = await app.request(`/api/v1/score/${MARIA_CNPJ_DIGITS}`, {
+      headers: authHeader,
+    });
     expect(res.status).toBe(404);
     const body = (await res.json()) as ErrorBody;
     expect(body.error.code).toBe("score_not_attested");
@@ -116,7 +130,9 @@ describe("GET /api/v1/score/:cnpj", () => {
   it("returns 422 for malformed CNPJ (wrong digit count)", async () => {
     const lookupByCnpj = vi.fn();
     const app = buildApp({ publicScore: { lookupByCnpj } });
-    const res = await app.request("/api/v1/score/123abc");
+    const res = await app.request("/api/v1/score/123abc", {
+      headers: authHeader,
+    });
     expect(res.status).toBe(422);
     const body = (await res.json()) as ErrorBody;
     expect(body.error.code).toBe("invalid_cnpj");
@@ -127,21 +143,27 @@ describe("GET /api/v1/score/:cnpj", () => {
     let clock = 0;
     const app = buildApp({
       publicScore: { lookupByCnpj: vi.fn().mockResolvedValue(FAKE_RESULT) },
-      // Tight bucket: 2 requests per minute, so the third should 429.
       rateLimit: { limit: 2, windowMs: 60_000, now: () => clock },
     });
 
-    const r1 = await app.request(`/api/v1/score/${MARIA_CNPJ_DIGITS}`);
+    const r1 = await app.request(`/api/v1/score/${MARIA_CNPJ_DIGITS}`, {
+      headers: authHeader,
+    });
     expect(r1.status).toBe(200);
-    const r2 = await app.request(`/api/v1/score/${MARIA_CNPJ_DIGITS}`);
+    const r2 = await app.request(`/api/v1/score/${MARIA_CNPJ_DIGITS}`, {
+      headers: authHeader,
+    });
     expect(r2.status).toBe(200);
-    const r3 = await app.request(`/api/v1/score/${MARIA_CNPJ_DIGITS}`);
+    const r3 = await app.request(`/api/v1/score/${MARIA_CNPJ_DIGITS}`, {
+      headers: authHeader,
+    });
     expect(r3.status).toBe(429);
     expect(r3.headers.get("Retry-After")).toBeTruthy();
 
-    // After the window fully refills, requests succeed again.
     clock += 60_000;
-    const r4 = await app.request(`/api/v1/score/${MARIA_CNPJ_DIGITS}`);
+    const r4 = await app.request(`/api/v1/score/${MARIA_CNPJ_DIGITS}`, {
+      headers: authHeader,
+    });
     expect(r4.status).toBe(200);
   });
 
@@ -152,19 +174,58 @@ describe("GET /api/v1/score/:cnpj", () => {
         new PublicScoreServiceError("solana_rpc_error", "rpc down"),
       );
     const app = buildApp({ publicScore: { lookupByCnpj } });
-    const res = await app.request(`/api/v1/score/${MARIA_CNPJ_DIGITS}`);
+    const res = await app.request(`/api/v1/score/${MARIA_CNPJ_DIGITS}`, {
+      headers: authHeader,
+    });
     expect(res.status).toBe(502);
     const body = (await res.json()) as ErrorBody;
     expect(body.error.code).toBe("solana_rpc_error");
   });
 
-  it("does not require X-Persona-Id (mounted outside the auth-protected block)", async () => {
+  it("does not require X-Persona-Id (third-party lender flow)", async () => {
     const app = buildApp({
       publicScore: { lookupByCnpj: vi.fn().mockResolvedValue(FAKE_RESULT) },
     });
-    const res = await app.request(`/api/v1/score/${MARIA_CNPJ_DIGITS}`);
-    // Critically, NOT 401 — proves third-party lenders can call without an
-    // EmpowerFI persona session.
+    // Authorization header is the only credential — no X-Persona-Id sent.
+    const res = await app.request(`/api/v1/score/${MARIA_CNPJ_DIGITS}`, {
+      headers: authHeader,
+    });
     expect(res.status).toBe(200);
+  });
+});
+
+describe("GET /api/v1/score/:cnpj — API key gate", () => {
+  it("returns 401 when Authorization header is missing", async () => {
+    const lookupByCnpj = vi.fn();
+    const app = buildApp({ publicScore: { lookupByCnpj } });
+    const res = await app.request(`/api/v1/score/${MARIA_CNPJ_DIGITS}`);
+    expect(res.status).toBe(401);
+    const body = (await res.json()) as ErrorBody;
+    expect(body.error.code).toBe("missing_api_key");
+    expect(lookupByCnpj).not.toHaveBeenCalled();
+  });
+
+  it("returns 401 for keys that don't carry the lender_demo_ prefix", async () => {
+    const lookupByCnpj = vi.fn();
+    const app = buildApp({ publicScore: { lookupByCnpj } });
+    const res = await app.request(`/api/v1/score/${MARIA_CNPJ_DIGITS}`, {
+      headers: { Authorization: "Bearer some_random_token" },
+    });
+    expect(res.status).toBe(401);
+    const body = (await res.json()) as ErrorBody;
+    expect(body.error.code).toBe("invalid_api_key");
+    expect(lookupByCnpj).not.toHaveBeenCalled();
+  });
+
+  it("returns 401 for unknown lender_demo_ keys not in the allowlist", async () => {
+    const lookupByCnpj = vi.fn();
+    const app = buildApp({ publicScore: { lookupByCnpj } });
+    const res = await app.request(`/api/v1/score/${MARIA_CNPJ_DIGITS}`, {
+      headers: { Authorization: "Bearer lender_demo_unknown" },
+    });
+    expect(res.status).toBe(401);
+    const body = (await res.json()) as ErrorBody;
+    expect(body.error.code).toBe("invalid_api_key");
+    expect(lookupByCnpj).not.toHaveBeenCalled();
   });
 });

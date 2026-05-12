@@ -33,7 +33,7 @@ export class OrchestratedScoreService implements ScoreService {
   async fetchOnChainForPersona(
     params: ScoreLookupParams,
   ): Promise<OnChainScore | null> {
-    const hmac = this.deriveHmac(params.personaId);
+    const hmac = this.deriveHmac(params);
     let result;
     try {
       result = await fetchScore(this.opts.client, hmac);
@@ -61,7 +61,7 @@ export class OrchestratedScoreService implements ScoreService {
 
   async attestForPersona(params: ScoreLookupParams): Promise<AttestedScore> {
     const breakdown = await this.requestAiBreakdown(params.personaId);
-    const hmac = this.deriveHmac(params.personaId);
+    const hmac = this.deriveHmac(params);
 
     let signature: string;
     let scorePdaAddress: string;
@@ -95,10 +95,16 @@ export class OrchestratedScoreService implements ScoreService {
     };
   }
 
-  private deriveHmac(personaId: string): Uint8Array {
-    // Persona UUID is a 36-char string; the wrapper expects either bytes or
-    // a 14-digit string. We pass raw bytes to skip the CNPJ digit check.
-    return cnpjHmac(Buffer.from(personaId, "utf8"), this.opts.hmacPepper);
+  private deriveHmac(params: ScoreLookupParams): Uint8Array {
+    // Prefer real CNPJ digits when present — that's what the public
+    // Score-as-a-Service API HMACs over, and is the only way the dashboard
+    // and the third-party lender API land on the same on-chain PDA.
+    if (params.cnpjDigits && /^\d{14}$/.test(params.cnpjDigits)) {
+      return cnpjHmac(params.cnpjDigits, this.opts.hmacPepper);
+    }
+    // MVP fallback: HMAC the persona UUID. Pass raw bytes to skip the
+    // wrapper's 14-digit check.
+    return cnpjHmac(Buffer.from(params.personaId, "utf8"), this.opts.hmacPepper);
   }
 
   private async requestAiBreakdown(personaId: string): Promise<{

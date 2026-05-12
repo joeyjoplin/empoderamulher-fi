@@ -13,6 +13,7 @@ export function scoreRoute(deps: { score: ScoreService }) {
     try {
       const result = await deps.score.fetchOnChainForPersona({
         personaId: c.var.persona.id,
+        cnpjDigits: c.var.persona.cnpjDigits,
       });
       if (!result) {
         return c.json(
@@ -36,6 +37,7 @@ export function scoreRoute(deps: { score: ScoreService }) {
     try {
       const result = await deps.score.attestForPersona({
         personaId: c.var.persona.id,
+        cnpjDigits: c.var.persona.cnpjDigits,
       });
       return c.json({ data: result });
     } catch (err) {

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Outlet, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,6 +20,7 @@ import ContratarSucessoPage from "./pages/ContratarSucessoPage.tsx";
 import CobrarPage from "./pages/CobrarPage.tsx";
 import HistoricoPage from "./pages/HistoricoPage.tsx";
 import ImpactoPage from "./pages/ImpactoPage.tsx";
+import ApiSandboxPage from "./pages/ApiSandboxPage.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -30,16 +31,34 @@ function ApiClientFromPersona({ children }: { children: ReactNode }) {
   return <ApiClientProvider value={client}>{children}</ApiClientProvider>;
 }
 
+/**
+ * Wraps the consumer-facing routes in the persona-keyed API client +
+ * ImpactProvider. Sibling routes (e.g. `/api-sandbox`) sit outside this
+ * shell so partner-lender pages don't depend on a persona session.
+ */
+function PersonaShell() {
+  return (
+    <ApiClientFromPersona>
+      <ImpactProvider>
+        <Outlet />
+      </ImpactProvider>
+    </ApiClientFromPersona>
+  );
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <PersonaProvider>
-        <ApiClientFromPersona>
-        <ImpactProvider>
-          <BrowserRouter>
-            <Routes>
+        <BrowserRouter>
+          <Routes>
+            {/* Public partner-facing surface — no persona client. */}
+            <Route path="/api-sandbox" element={<ApiSandboxPage />} />
+
+            {/* Consumer-facing app — needs PersonaShell for ApiClient + ImpactProvider. */}
+            <Route element={<PersonaShell />}>
               <Route path="/" element={<Index />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/insights/:id" element={<InsightDetail />} />
@@ -54,12 +73,12 @@ const App = () => (
               <Route path="/marketplace/cobrar" element={<CobrarPage />} />
               <Route path="/historico" element={<HistoricoPage />} />
               <Route path="/impacto" element={<ImpactoPage />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </ImpactProvider>
-        </ApiClientFromPersona>
+            </Route>
+
+            {/* Catch-all */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
       </PersonaProvider>
     </TooltipProvider>
   </QueryClientProvider>

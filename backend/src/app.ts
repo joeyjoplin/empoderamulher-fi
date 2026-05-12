@@ -9,12 +9,14 @@ import type { RateLimitOptions } from "./middleware/rate_limit.js";
 import { chatRoute } from "./routes/chat.js";
 import { creditRoute } from "./routes/credit.js";
 import { healthRoute } from "./routes/health.js";
+import { impactRoute } from "./routes/impact.js";
 import { insightsRoute } from "./routes/insights.js";
 import { marketplaceRoute } from "./routes/marketplace.js";
 import { meRoute } from "./routes/me.js";
 import { publicScoreRoute } from "./routes/public_score.js";
 import { scoreRoute } from "./routes/score.js";
 import type { ChatService } from "./services/chat.js";
+import type { ImpactRepository } from "./services/impact.js";
 import type { InsightsService } from "./services/insights.js";
 import type { LoanRepository, LoanService } from "./services/loans.js";
 import type {
@@ -35,11 +37,14 @@ export type AppDeps = {
   marketplaceRepository: MarketplaceRepository;
   scoreService: ScoreService;
   publicScoreService: PublicScoreService;
+  impactRepository: ImpactRepository;
   chatService: ChatService;
   authMode: AuthMode;
   logger?: Logger;
   corsAllowOrigins?: string;
   publicScoreRateLimit?: Partial<RateLimitOptions>;
+  /** Demo API keys accepted by the public Score-as-a-Service `Authorization` gate. */
+  publicScoreApiKeys: readonly string[];
 };
 
 export type AppVariables = AuthVariables & LoggerVariables;
@@ -64,8 +69,10 @@ export function createApp(deps: AppDeps) {
     publicScoreRoute({
       service: deps.publicScoreService,
       rateLimitOptions: deps.publicScoreRateLimit,
+      apiKeys: deps.publicScoreApiKeys,
     }),
   );
+  app.route("/api/impact", impactRoute({ impacts: deps.impactRepository }));
 
   const protectedRoutes = new Hono<{ Variables: AppVariables }>();
   protectedRoutes.use(

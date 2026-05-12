@@ -10,6 +10,7 @@ import {
 } from "./db/client.js";
 import { createLogger } from "./middleware/logger.js";
 import { HttpChatService } from "./services/chat.js";
+import { DrizzleImpactRepository } from "./services/impact.js";
 import {
   ConnectionSignatureFetcher,
   DrizzleCursorStore,
@@ -151,6 +152,11 @@ async function main() {
   }
   const loanRepository = new InMemoryLoanRepository();
   const marketplaceRepository = new InMemoryMarketplaceRepository();
+  const impactRepository = new DrizzleImpactRepository(db);
+
+  const publicScoreApiKeys = env.SCORE_SAAS_DEMO_KEYS.split(",")
+    .map((k) => k.trim())
+    .filter((k) => k.length > 0);
 
   const app = createApp({
     personaService,
@@ -161,6 +167,8 @@ async function main() {
     marketplaceRepository,
     scoreService,
     publicScoreService,
+    impactRepository,
+    publicScoreApiKeys,
     chatService,
     authMode: env.AUTH_MODE,
     logger,

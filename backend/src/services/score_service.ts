@@ -32,6 +32,13 @@ export type AttestedScore = OnChainScore & {
 
 export type ScoreLookupParams = {
   personaId: string;
+  /**
+   * Raw 14-digit CNPJ. When present, the on-chain PDA is keyed by HMAC of
+   * these digits — matching the public Score-as-a-Service contract used by
+   * third-party lenders. When absent, the service falls back to HMACing
+   * the persona UUID (MVP placeholder).
+   */
+  cnpjDigits?: string | null;
 };
 
 export interface ScoreService {

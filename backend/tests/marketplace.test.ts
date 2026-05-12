@@ -23,6 +23,7 @@ const MARIA: Persona = {
   monthlyRevenueAvg: "4500.00",
   stage: 2,
   walletPubkey: "BcZmHLn41QZcvEvnmQkbqYz1Jo6iRdy4U3Y8BcwaCZNX",
+  cnpjDigits: null,
 };
 
 const ANA: Persona = {
@@ -33,6 +34,7 @@ const ANA: Persona = {
   monthlyRevenueAvg: "3200.00",
   stage: 1,
   walletPubkey: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+  cnpjDigits: null,
 };
 
 const FAKE_HIRE: CompletedHire = {
@@ -74,6 +76,8 @@ function buildApp(overrides: {
         attestForPersona: vi.fn(),
       },
       publicScoreService: { lookupByCnpj: vi.fn() },
+      publicScoreApiKeys: [],
+      impactRepository: { recentEvents: vi.fn().mockResolvedValue([]) },
       chatService: { sendMessage: vi.fn() },
       authMode: "mock",
     }),

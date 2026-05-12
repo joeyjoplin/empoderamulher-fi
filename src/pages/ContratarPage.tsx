@@ -3,8 +3,8 @@ import { marketplaceListings } from "@/data/impactData";
 import { formatBRL } from "@/lib/format";
 import { useImpact } from "@/context/ImpactContext";
 import { useApiClient } from "@/api/ApiClientProvider";
-import { ApiError } from "@/api/client";
 import { hireProvider, type CompletedHire } from "@/api/marketplace";
+import { friendlyError } from "@/lib/error-copy";
 import { AlertCircle, Heart, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
@@ -71,13 +71,7 @@ export default function ContratarPage() {
       });
     } catch (err) {
       window.clearInterval(stepTimer);
-      const message =
-        err instanceof ApiError
-          ? err.message
-          : err instanceof Error
-            ? err.message
-            : "Não conseguimos registrar a contratação agora.";
-      setStatus({ kind: "error", message });
+      setStatus({ kind: "error", message: friendlyError(err) });
     }
   };
 

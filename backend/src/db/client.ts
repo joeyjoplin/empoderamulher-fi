@@ -46,6 +46,14 @@ export async function ensureIndexerSchema(db: Database): Promise<void> {
       updated_at timestamptz NOT NULL DEFAULT now()
     )
   `);
+  // The AI service's Base.metadata.create_all only creates missing tables,
+  // not missing columns. Add `cnpj_digits` here so existing deployments
+  // (where `personas` already exists from prior seeds) pick up the column
+  // without a manual migration. TASK 3.5.2 — keep until a real migration
+  // framework lands.
+  await db.execute(sql`
+    ALTER TABLE personas ADD COLUMN IF NOT EXISTS cnpj_digits varchar(14)
+  `);
 }
 
 export function createDatabase(databaseUrl: string): {
@@ -96,6 +104,7 @@ export class DrizzlePersonaService implements PersonaService {
       monthlyRevenueAvg: row.monthlyRevenueAvg,
       stage: row.stage,
       walletPubkey: row.walletPubkey,
+      cnpjDigits: row.cnpjDigits,
     };
   }
 }

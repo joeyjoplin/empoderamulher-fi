@@ -45,6 +45,7 @@ class GeneratedPersona:
     monthly_revenue_avg: Decimal
     stage: int
     wallet_pubkey: str | None
+    cnpj_digits: str | None
     transactions: tuple[GeneratedTransaction, ...]
 
 
@@ -74,6 +75,16 @@ PERSONA_WALLET_PUBKEYS: dict[str, str] = {
     "maria": "BcZmHLn41QZcvEvnmQkbqYz1Jo6iRdy4U3Y8BcwaCZNX",
     "ana": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
     "julia": "So11111111111111111111111111111111111111112",
+}
+
+# Stable demo CNPJs per persona (raw 14 digits, no formatting). The on-chain
+# Score PDA is keyed by HMAC-SHA256(SCORE_HMAC_PEPPER, cnpj_digits) — the raw
+# CNPJ never appears on-chain (BLUEPRINT §2.5). Maria's value below is the
+# DEMO_CNPJ used by the public Score-as-a-Service sandbox UI (TASK 3.5.2).
+PERSONA_CNPJ_DIGITS: dict[str, str] = {
+    "maria": "12345678000190",
+    "ana": "23456789000181",
+    "julia": "34567890000172",
 }
 
 
@@ -169,6 +180,7 @@ def _generate_maria(now: datetime) -> GeneratedPersona:
         monthly_revenue_avg=Decimal("4500.00"),
         stage=2,
         wallet_pubkey=PERSONA_WALLET_PUBKEYS["maria"],
+        cnpj_digits=PERSONA_CNPJ_DIGITS["maria"],
         transactions=tuple(txs),
     )
 
@@ -224,6 +236,7 @@ def _generate_ana(now: datetime) -> GeneratedPersona:
         monthly_revenue_avg=Decimal("3200.00"),
         stage=1,
         wallet_pubkey=PERSONA_WALLET_PUBKEYS["ana"],
+        cnpj_digits=PERSONA_CNPJ_DIGITS["ana"],
         transactions=tuple(txs),
     )
 
@@ -285,6 +298,7 @@ def _generate_julia(now: datetime) -> GeneratedPersona:
         monthly_revenue_avg=Decimal("8200.00"),
         stage=4,
         wallet_pubkey=PERSONA_WALLET_PUBKEYS["julia"],
+        cnpj_digits=PERSONA_CNPJ_DIGITS["julia"],
         transactions=tuple(txs),
     )
 

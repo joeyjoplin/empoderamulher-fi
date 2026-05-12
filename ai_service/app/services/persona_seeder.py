@@ -40,6 +40,7 @@ def _upsert_persona(session: Session, gp: GeneratedPersona) -> None:
     existing.monthly_revenue_avg = gp.monthly_revenue_avg
     existing.stage = gp.stage
     existing.wallet_pubkey = gp.wallet_pubkey
+    existing.cnpj_digits = gp.cnpj_digits
 
     # Wipe and re-insert transactions for idempotency.
     session.execute(delete(Transaction).where(Transaction.persona_id == gp.id))

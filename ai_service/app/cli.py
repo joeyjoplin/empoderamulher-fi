@@ -8,6 +8,7 @@ Usage:
 from __future__ import annotations
 
 import typer
+from sqlalchemy import text
 
 from app.db.models import Base
 from app.db.session import get_engine, get_session_factory
@@ -21,11 +22,28 @@ def _main() -> None:
     """Root callback so Typer treats this as a multi-command app."""
 
 
+def _ensure_persona_columns(engine) -> None:
+    """Idempotent ALTERs for columns added after the initial create_all.
+
+    `Base.metadata.create_all` only creates missing TABLES, never missing
+    COLUMNS. Each schema addition that needs to land on existing personas
+    rows goes here until the project adopts a real migration framework.
+    """
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                "ALTER TABLE personas "
+                "ADD COLUMN IF NOT EXISTS cnpj_digits varchar(14)"
+            )
+        )
+
+
 @cli.command("seed-personas")
 def seed_personas_command() -> None:
     """Generate and persist the 3 demo personas (idempotent)."""
     engine = get_engine()
     Base.metadata.create_all(engine)
+    _ensure_persona_columns(engine)
 
     factory = get_session_factory()
     with factory() as session:

@@ -2,9 +2,8 @@
  * Public Score-as-a-Service endpoint.
  *
  * Mounted OUTSIDE the persona-auth-protected routes — third-party lenders
- * authenticate via CNPJ (and, in production, an API key issued at
- * onboarding). The hackathon version is per-IP rate-limited only; the API
- * key gate ships with TASK 3.5.2.
+ * authenticate via `Authorization: Bearer lender_demo_*` against an
+ * in-memory allowlist (TASK 3.5.2). Per-key rate limit on top.
  *
  * Response uses snake_case field names — matches the third-party-friendly
  * JSON convention documented in the README's cURL example, and lets the
@@ -14,6 +13,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 
+import { apiKey, type ApiKeyVariables } from "../middleware/api_key.js";
 import { rateLimit, type RateLimitOptions } from "../middleware/rate_limit.js";
 import {
   PublicScoreServiceError,
@@ -30,19 +30,34 @@ const cnpjParamSchema = z
 export type PublicScoreRouteDeps = {
   service: PublicScoreService;
   rateLimitOptions?: Partial<RateLimitOptions>;
+  /** Demo API keys accepted by the `Authorization: Bearer …` gate. */
+  apiKeys: readonly string[];
 };
 
 export function publicScoreRoute(deps: PublicScoreRouteDeps) {
-  const app = new Hono();
+  const app = new Hono<{ Variables: ApiKeyVariables }>();
+
+  const gate = apiKey({
+    allowlist: deps.apiKeys,
+    expectedPrefix: "lender_demo_",
+  });
 
   const limit = rateLimit({
     limit: deps.rateLimitOptions?.limit ?? 30,
     windowMs: deps.rateLimitOptions?.windowMs ?? 60_000,
-    keyFn: deps.rateLimitOptions?.keyFn,
+    // Attribute by API key when the gate has set one; otherwise fall back
+    // to the supplied keyFn (typically per-IP) so unauthenticated bursts
+    // still get throttled.
+    keyFn: (req) => {
+      const auth = req.headers.get("Authorization") ?? "";
+      const match = /^Bearer\s+(.+)$/i.exec(auth);
+      if (match?.[1]) return match[1].trim();
+      return deps.rateLimitOptions?.keyFn?.(req) ?? "anonymous";
+    },
     now: deps.rateLimitOptions?.now,
   });
 
-  app.get("/:cnpj", limit, async (c) => {
+  app.get("/:cnpj", gate, limit, async (c) => {
     const raw = c.req.param("cnpj");
     const parsed = cnpjParamSchema.safeParse(raw);
     if (!parsed.success) {

@@ -16,6 +16,7 @@ const MARIA: Persona = {
   monthlyRevenueAvg: "4500.00",
   stage: 2,
   walletPubkey: null,
+  cnpjDigits: null,
 };
 
 const ALERT_FOR_MARIA: ProactiveAlert = {
@@ -55,8 +56,10 @@ function buildApp(insights: InsightsService) {
       attestForPersona: vi.fn(),
     },
     publicScoreService: { lookupByCnpj: vi.fn() },
+    publicScoreApiKeys: [],
     marketplaceService: { hireProvider: vi.fn() },
     marketplaceRepository: { save: vi.fn(), countHiresByBuyer: vi.fn() },
+    impactRepository: { recentEvents: vi.fn().mockResolvedValue([]) },
     chatService: { sendMessage: vi.fn() },
     authMode: "mock",
   });

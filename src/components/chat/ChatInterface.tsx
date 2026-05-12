@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Send } from "lucide-react";
-import { ApiError } from "@/api/client";
 import {
   sendChatMessage,
   type ChatHistoryMessage,
@@ -10,6 +9,7 @@ import {
 } from "@/api/chat";
 import { useApiClient } from "@/api/ApiClientProvider";
 import { usePersona } from "@/context/PersonaContext";
+import { friendlyError } from "@/lib/error-copy";
 import { renderInline } from "@/lib/inline-markdown";
 
 type Message = {
@@ -89,11 +89,7 @@ export function ChatInterface() {
         },
       ]);
     } catch (err) {
-      const message =
-        err instanceof ApiError
-          ? err.message
-          : "Algo deu errado por aqui. Pode tentar de novo?";
-      setError(message);
+      setError(friendlyError(err));
     } finally {
       setTyping(false);
     }

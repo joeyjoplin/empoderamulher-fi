@@ -22,6 +22,7 @@ export const personas = pgTable("personas", {
   }).notNull(),
   stage: integer("stage").notNull(),
   walletPubkey: text("wallet_pubkey"),
+  cnpjDigits: text("cnpj_digits"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 

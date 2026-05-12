@@ -22,6 +22,7 @@ const MARIA: Persona = {
   monthlyRevenueAvg: "4500.00",
   stage: 2,
   walletPubkey: "BcZmHLn41QZcvEvnmQkbqYz1Jo6iRdy4U3Y8BcwaCZNX",
+  cnpjDigits: null,
 };
 
 const FAKE_ON_CHAIN: OnChainScore = {
@@ -48,8 +49,10 @@ function buildApp(score: ScoreService) {
     loanRepository: repo,
     scoreService: score,
     publicScoreService: { lookupByCnpj: vi.fn() },
+    publicScoreApiKeys: [],
     marketplaceService: { hireProvider: vi.fn() },
     marketplaceRepository: { save: vi.fn(), countHiresByBuyer: vi.fn() },
+    impactRepository: { recentEvents: vi.fn().mockResolvedValue([]) },
     chatService: { sendMessage: vi.fn() },
     authMode: "mock",
   });
@@ -80,7 +83,10 @@ describe("GET /score/me", () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as DataBody<OnChainScore>;
     expect(body.data).toEqual(FAKE_ON_CHAIN);
-    expect(fetchOnChainForPersona).toHaveBeenCalledWith({ personaId: MARIA.id });
+    expect(fetchOnChainForPersona).toHaveBeenCalledWith({
+      personaId: MARIA.id,
+      cnpjDigits: MARIA.cnpjDigits,
+    });
   });
 
   it("returns 404 when no score has been attested yet", async () => {
@@ -147,7 +153,10 @@ describe("POST /score/attest", () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as DataBody<AttestedScore>;
     expect(body.data).toEqual(FAKE_ATTEST);
-    expect(attestForPersona).toHaveBeenCalledWith({ personaId: MARIA.id });
+    expect(attestForPersona).toHaveBeenCalledWith({
+      personaId: MARIA.id,
+      cnpjDigits: MARIA.cnpjDigits,
+    });
   });
 
   it("returns 502 when attestation fails", async () => {

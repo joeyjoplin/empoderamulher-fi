@@ -20,6 +20,7 @@ const MARIA: Persona = {
   monthlyRevenueAvg: "4500.00",
   stage: 2,
   walletPubkey: null,
+  cnpjDigits: null,
 };
 
 const REPLY: ChatReply = {
@@ -38,8 +39,10 @@ function buildApp(chat: ChatService) {
       attestForPersona: vi.fn(),
     },
     publicScoreService: { lookupByCnpj: vi.fn() },
+    publicScoreApiKeys: [],
     marketplaceService: { hireProvider: vi.fn() },
     marketplaceRepository: { save: vi.fn(), countHiresByBuyer: vi.fn() },
+    impactRepository: { recentEvents: vi.fn().mockResolvedValue([]) },
     chatService: chat,
     authMode: "mock",
   });

@@ -28,6 +28,11 @@ class Persona(Base):
     monthly_revenue_avg: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     stage: Mapped[int]
     wallet_pubkey: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # Raw 14-digit CNPJ. The on-chain Score PDA is keyed by HMAC of these
+    # digits — never persisted on-chain in plaintext (BLUEPRINT §2.5). When
+    # null the score service falls back to HMACing the persona UUID, which
+    # is the MVP placeholder that predates the CNPJ-keyed flow.
+    cnpj_digits: Mapped[str | None] = mapped_column(String(14), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow
     )

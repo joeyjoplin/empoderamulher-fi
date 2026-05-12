@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { motion } from "framer-motion";
 import { CheckCircle2, ExternalLink, Sparkles } from "lucide-react";
 
 import type { DisbursedLoan } from "@/api/credit";
@@ -60,10 +61,19 @@ export default function CreditSuccess() {
       <AppHeader title="Sucesso" />
 
       <main className="container-mobile space-y-5 py-8 text-center">
-        <div className="animate-scale-in">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-success/15">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <motion.div
+            initial={{ scale: 0.4, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 260, damping: 18, delay: 0.1 }}
+            className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-success/15"
+          >
             <CheckCircle2 className="h-12 w-12 text-success" />
-          </div>
+          </motion.div>
           <h1 className="mt-5 text-2xl font-bold tracking-tight text-primary">
             Pronto, {current.firstName}! 🎉
           </h1>
@@ -71,9 +81,14 @@ export default function CreditSuccess() {
             {formatBRL(amount)} estão na sua conta agora. Sua próxima parcela
             vence em 30 dias.
           </p>
-        </div>
+        </motion.div>
 
-        <div className="rounded-xl border border-border bg-card p-5 text-left shadow-sm">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.45 }}
+          className="rounded-xl border border-border bg-card p-5 text-left shadow-sm"
+        >
           <div className="flex items-center justify-between border-b border-border pb-3">
             <span className="text-sm text-muted-foreground">Valor recebido</span>
             <span className="text-lg font-bold text-primary">
@@ -107,9 +122,14 @@ export default function CreditSuccess() {
               <span className="text-sm text-muted-foreground">—</span>
             )}
           </div>
-        </div>
+        </motion.div>
 
-        <div className="rounded-xl border border-highlight bg-highlight p-4 text-left">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.94 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: "spring", stiffness: 220, damping: 20, delay: 0.85 }}
+          className="rounded-xl border border-highlight bg-highlight p-4 text-left"
+        >
           <div className="flex items-start gap-3">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent/20 text-accent">
               <Sparkles className="h-4 w-4" />
@@ -123,7 +143,7 @@ export default function CreditSuccess() {
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         <div className="space-y-2.5">
           <Link

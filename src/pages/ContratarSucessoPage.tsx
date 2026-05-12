@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import { AppHeader } from "@/components/AppHeader";
 import { useImpact } from "@/context/ImpactContext";
 import type { CompletedHire } from "@/api/marketplace";
@@ -30,16 +31,26 @@ export default function ContratarSucessoPage() {
   return (
     <div className="min-h-screen bg-background">
       <AppHeader title="Sucesso" showBack />
-      <main className="container-mobile space-y-5 py-8 animate-fade-in">
-        <div className="text-center animate-scale-in">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success/15">
+      <main className="container-mobile space-y-5 py-8">
+        <motion.div
+          className="text-center"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <motion.div
+            initial={{ scale: 0.4, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 260, damping: 18, delay: 0.1 }}
+            className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success/15"
+          >
             <CheckCircle2 className="h-10 w-10 text-success" />
-          </div>
+          </motion.div>
           <h1 className="mt-4 text-xl font-bold text-primary">Contratação registrada! 🎉</h1>
           <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
             {merchantName} foi notificada. Sua transação está auditável na blockchain.
           </p>
-        </div>
+        </motion.div>
 
         {paySig ? (
           <div className="rounded-xl border border-border bg-card p-4 shadow-sm">

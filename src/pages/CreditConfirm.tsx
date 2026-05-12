@@ -6,6 +6,7 @@ import { useApiClient } from "@/api/ApiClientProvider";
 import { ApiError } from "@/api/client";
 import { requestCredit, type DisbursedLoan } from "@/api/credit";
 import { AppHeader } from "@/components/AppHeader";
+import { friendlyError } from "@/lib/error-copy";
 
 const STEPS = [
   "Analisando seu perfil financeiro...",
@@ -86,9 +87,7 @@ export default function CreditConfirm() {
               Algo deu errado
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              {status.error.message ||
-                "Não conseguimos processar seu crédito agora."}{" "}
-              Pode acontecer com a rede da blockchain — vamos tentar de novo.
+              {friendlyError(status.error)}
             </p>
             <button
               type="button"
