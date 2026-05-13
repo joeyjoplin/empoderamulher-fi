@@ -46,3 +46,6 @@ CLAUDE.md
 PLAN_3_WEEKS.md
 .superstack/
 DEMO_SCRIPT.md
+
+# One-off SQL migrations applied manually via Supabase SQL Editor.
+backend/sql/

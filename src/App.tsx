@@ -4,6 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ApiClientProvider, useDefaultApiClient } from "@/api/ApiClientProvider";
+import { AuthProvider } from "@/auth/AuthProvider";
+import { RequireAuth } from "@/auth/RequireAuth";
 import { PersonaProvider, usePersona } from "@/context/PersonaContext";
 import { ImpactProvider } from "@/context/ImpactContext";
 import type { ReactNode } from "react";
@@ -51,35 +53,42 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <PersonaProvider>
-        <BrowserRouter>
-          <Routes>
-            {/* Public partner-facing surface — no persona client. */}
-            <Route path="/api-sandbox" element={<ApiSandboxPage />} />
-
-            {/* Consumer-facing app — needs PersonaShell for ApiClient + ImpactProvider. */}
-            <Route element={<PersonaShell />}>
+      <AuthProvider>
+        <PersonaProvider>
+          <BrowserRouter>
+            <Routes>
+              {/* Public surfaces — landing + partner sandbox. No persona client,
+                  no auth gate (Landing IS the auth gate when web3auth mode is on). */}
               <Route path="/" element={<Index />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/insights/:id" element={<InsightDetail />} />
-              <Route path="/credit/offer" element={<InsightDetail />} />
-              <Route path="/credit/confirm" element={<CreditConfirm />} />
-              <Route path="/credit/success" element={<CreditSuccess />} />
-              <Route path="/score" element={<ScorePage />} />
-              <Route path="/chat" element={<ChatPage />} />
-              <Route path="/marketplace" element={<MarketplacePage />} />
-              <Route path="/marketplace/contratar/:id" element={<ContratarPage />} />
-              <Route path="/marketplace/sucesso" element={<ContratarSucessoPage />} />
-              <Route path="/marketplace/cobrar" element={<CobrarPage />} />
-              <Route path="/historico" element={<HistoricoPage />} />
-              <Route path="/impacto" element={<ImpactoPage />} />
-            </Route>
+              <Route path="/api-sandbox" element={<ApiSandboxPage />} />
 
-            {/* Catch-all */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </PersonaProvider>
+              {/* Consumer-facing app — RequireAuth bounces unauth visitors back
+                  to `/` in web3auth mode, no-ops in mock mode. PersonaShell
+                  then sets up the persona-keyed ApiClient + ImpactProvider. */}
+              <Route element={<RequireAuth />}>
+                <Route element={<PersonaShell />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/insights/:id" element={<InsightDetail />} />
+                  <Route path="/credit/offer" element={<InsightDetail />} />
+                  <Route path="/credit/confirm" element={<CreditConfirm />} />
+                  <Route path="/credit/success" element={<CreditSuccess />} />
+                  <Route path="/score" element={<ScorePage />} />
+                  <Route path="/chat" element={<ChatPage />} />
+                  <Route path="/marketplace" element={<MarketplacePage />} />
+                  <Route path="/marketplace/contratar/:id" element={<ContratarPage />} />
+                  <Route path="/marketplace/sucesso" element={<ContratarSucessoPage />} />
+                  <Route path="/marketplace/cobrar" element={<CobrarPage />} />
+                  <Route path="/historico" element={<HistoricoPage />} />
+                  <Route path="/impacto" element={<ImpactoPage />} />
+                </Route>
+              </Route>
+
+              {/* Catch-all */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </PersonaProvider>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
