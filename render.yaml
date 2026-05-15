@@ -1,0 +1,93 @@
+# Render blueprint — provisions the backend + AI service in one go.
+#
+# Usage: in the Render dashboard click "New" → "Blueprint" → connect this repo.
+# Render reads this file and creates both services. Set the env vars listed
+# under each service in the dashboard (they're marked sync: false here so
+# Render doesn't try to commit secrets back to git).
+#
+# Frontend is NOT here — Vercel handles it via vercel.json.
+
+services:
+  # ──────────────────────────────────────────────────────────────────────────
+  # Backend orchestrator (Hono + Drizzle + Solana indexer worker)
+  #
+  # Long-running web service: must NOT be deployed as serverless functions
+  # because the IndexerWorker runs a poll loop in-process. Render's "Web
+  # Service" type is the right shape — single always-on instance, scales
+  # vertically. The free tier suspends after inactivity, which stops the
+  # indexer; for a stable demo URL bump to Starter ($7/mo).
+  # ──────────────────────────────────────────────────────────────────────────
+  - type: web
+    name: empowerfi-backend
+    runtime: node
+    rootDir: backend
+    plan: starter # free tier sleeps; demo needs starter to keep indexer alive
+    region: oregon # closest free-tier region; Brazil isn't free-tier
+    branch: main
+    buildCommand: pnpm install --frozen-lockfile && pnpm build
+    startCommand: pnpm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: PORT
+        value: "3001"
+      - key: AUTH_MODE
+        value: mock
+      - key: LOG_LEVEL
+        value: info
+      - key: INDEXER_POLL_INTERVAL_MS
+        value: "10000"
+
+      # CORS allow-list. Set to the Vercel URL after the frontend deploys.
+      - key: CORS_ALLOW_ORIGINS
+        sync: false # set in dashboard, e.g. https://empowerfi-demo.vercel.app
+
+      # Postgres (Supabase pooler URL — same DB as the AI service).
+      - key: DATABASE_URL
+        sync: false
+
+      # Solana devnet.
+      - key: SOLANA_RPC_URL
+        sync: false # https://devnet.helius-rpc.com/?api-key=... or api.devnet.solana.com
+      - key: SOLANA_PAYER_SECRET_KEY
+        sync: false # base58-encoded keypair; same wallet used in dev
+      - key: SOLANA_AIRDROP_BORROWER
+        value: "true"
+
+      # Score-as-a-Service.
+      - key: SCORE_HMAC_PEPPER
+        sync: false # 32+ random bytes; rotation re-derives all Score PDAs
+      - key: SCORE_SAAS_DEMO_KEYS
+        value: lender_demo_a1b2c3d4ef,lender_demo_9z8y7x6w5v
+
+      # AI service URL — set after the AI service deploys (its render.com URL).
+      - key: AI_SERVICE_URL
+        sync: false
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # AI service (FastAPI + Anthropic SDK)
+  #
+  # Stateless HTTP service — Render builds the Dockerfile at ai_service/.
+  # Same Postgres as backend, same Supabase pool.
+  # ──────────────────────────────────────────────────────────────────────────
+  - type: web
+    name: empowerfi-ai
+    runtime: docker
+    rootDir: ai_service
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    region: oregon
+    branch: main
+    healthCheckPath: /health
+    autoDeploy: true
+    # Render injects $PORT — override the Dockerfile CMD to bind to it.
+    dockerCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: LOG_LEVEL
+        value: info
+      - key: ANTHROPIC_API_KEY
+        sync: false # never commit; set in dashboard
+      - key: DATABASE_URL
+        sync: false # same value as backend (Supabase pooler URL)

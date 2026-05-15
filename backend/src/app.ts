@@ -58,6 +58,12 @@ export function createApp(deps: AppDeps) {
     "*",
     cors({
       origin: allowOrigins === "*" ? "*" : allowOrigins.split(","),
+      // Explicit allow-list so the browser preflight passes for our two
+      // custom headers. Without this, requests from a non-`*` origin
+      // (production Vercel URL → Render backend) get blocked at the
+      // OPTIONS preflight even though the actual handler would accept them.
+      allowHeaders: ["Content-Type", "Accept", "X-Persona-Id", "Authorization"],
+      allowMethods: ["GET", "POST", "OPTIONS"],
     }),
   );
   app.use("*", loggerMiddleware(logger));
