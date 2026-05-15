@@ -24,8 +24,12 @@ services:
     plan: starter # free tier sleeps; demo needs starter to keep indexer alive
     region: oregon # closest free-tier region; Brazil isn't free-tier
     branch: main
-    buildCommand: pnpm install --frozen-lockfile && pnpm build
-    startCommand: pnpm start
+    # Backend uses npm (has its own package-lock.json) — NOT pnpm. Render
+    # auto-detects pnpm if you write `pnpm install` but the lockfile is npm,
+    # so the install fails with ERR_PNPM_NO_LOCKFILE. `npm ci` enforces the
+    # exact lockfile versions, same idea as `pnpm install --frozen-lockfile`.
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
     healthCheckPath: /health
     autoDeploy: true
     envVars:
