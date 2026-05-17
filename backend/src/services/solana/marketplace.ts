@@ -14,6 +14,7 @@ export type TxResult = { signature: string };
 export type PaymentCategory = "supplies" | "packaging" | "services" | "other";
 
 const PAYMENT_SEED = Buffer.from("payment");
+const BNPL_SEED = Buffer.from("bnpl");
 
 /**
  * Encode a u64 nonce as 8 little-endian bytes — mirrors `nonce.to_le_bytes()`
@@ -33,6 +34,17 @@ export function paymentRequestPda(
 ): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
     [PAYMENT_SEED, buyer.toBuffer(), provider.toBuffer(), nonceLeBytes(nonce)],
+    marketplaceProgramId,
+  );
+}
+
+export function bnplPlanPda(
+  marketplaceProgramId: PublicKey,
+  paymentRequest: PublicKey,
+  buyer: PublicKey,
+): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [BNPL_SEED, paymentRequest.toBuffer(), buyer.toBuffer()],
     marketplaceProgramId,
   );
 }
@@ -107,6 +119,13 @@ export type PayRequestParams = {
   buyerSigner: Keypair;
   provider: PublicKey;
   nonce: bigint;
+  /**
+   * When this `pay_request` settles the supplier-upfront leg of a BNPL plan,
+   * pass the plan PDA so the program emits `PaymentCompleted { bnpl: true }`.
+   * Direct-pay callers leave this undefined — the wrapper passes `null` to
+   * Anchor so it doesn't try to auto-derive a PDA that doesn't exist.
+   */
+  bnplPlan?: PublicKey | null;
 };
 
 export async function payRequest(
@@ -125,6 +144,105 @@ export async function payRequest(
     .accountsPartial({
       buyer: params.buyerSigner.publicKey,
       request,
+      bnplPlan: params.bnplPlan ?? null,
+    })
+    .signers([params.buyerSigner])
+    .rpc();
+
+  return { signature };
+}
+
+export type CreateBnplRequestParams = {
+  buyerSigner: Keypair;
+  provider: PublicKey;
+  nonce: bigint;
+  principalAmount: bigint;
+  totalRepayable: bigint;
+  installmentCount: number;
+  installmentAmount: bigint;
+  firstDueAt: bigint;
+  category: PaymentCategory;
+  memo: string;
+};
+
+export type CreateBnplRequestResult = TxResult & {
+  request: string;
+  plan: string;
+};
+
+export async function createBnplRequest(
+  client: SolanaClient,
+  params: CreateBnplRequestParams,
+): Promise<CreateBnplRequestResult> {
+  const [request] = paymentRequestPda(
+    client.programIds.marketplace,
+    params.buyerSigner.publicKey,
+    params.provider,
+    params.nonce,
+  );
+  const [plan] = bnplPlanPda(
+    client.programIds.marketplace,
+    request,
+    params.buyerSigner.publicKey,
+  );
+
+  const signature = await client.programs.marketplace.methods
+    .createBnplRequest(
+      new BN(params.nonce.toString()),
+      new BN(params.principalAmount.toString()),
+      new BN(params.totalRepayable.toString()),
+      params.installmentCount,
+      new BN(params.installmentAmount.toString()),
+      new BN(params.firstDueAt.toString()),
+      encodeCategory(params.category),
+      params.memo,
+    )
+    .accountsPartial({
+      buyer: params.buyerSigner.publicKey,
+      provider: params.provider,
+      request,
+      plan,
+      systemProgram: SystemProgram.programId,
+    })
+    .signers([params.buyerSigner])
+    .rpc();
+
+  return {
+    signature,
+    request: request.toBase58(),
+    plan: plan.toBase58(),
+  };
+}
+
+export type RecordInstallmentParams = {
+  buyerSigner: Keypair;
+  provider: PublicKey;
+  nonce: bigint;
+  installmentIndex: number;
+};
+
+export async function recordInstallment(
+  client: SolanaClient,
+  params: RecordInstallmentParams,
+): Promise<TxResult> {
+  const [request] = paymentRequestPda(
+    client.programIds.marketplace,
+    params.buyerSigner.publicKey,
+    params.provider,
+    params.nonce,
+  );
+  const [plan] = bnplPlanPda(
+    client.programIds.marketplace,
+    request,
+    params.buyerSigner.publicKey,
+  );
+
+  const signature = await client.programs.marketplace.methods
+    .recordInstallment(new BN(params.nonce.toString()), params.installmentIndex)
+    .accountsPartial({
+      buyer: params.buyerSigner.publicKey,
+      request,
+      plan,
     })
     .signers([params.buyerSigner])
     .rpc();

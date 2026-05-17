@@ -16,14 +16,24 @@ import type { ImpactEvent, ImpactRepository } from "../services/impact.js";
 const RECENT_TX_LIMIT = 5;
 const RECENT_TX_FETCH = 30;
 
-export type ImpactTransactionType = "loan_disbursed" | "marketplace_payment";
+export type ImpactTransactionType =
+  | "loan_disbursed"
+  | "marketplace_payment"
+  | "marketplace_bnpl_supplier_paid"
+  | "marketplace_bnpl_installment_paid"
+  | "marketplace_bnpl_completed";
 
 export type ImpactTransaction = {
   /** Stable composite key — `<signature>:<eventIndex>`. */
   id: string;
   type: ImpactTransactionType;
   description: string;
-  amountCents: number;
+  /**
+   * Cents for events that carry a monetary value (loan amount, supplier
+   * payment, total repaid). `null` for `InstallmentPaid`, which only records
+   * a progress counter on-chain.
+   */
+  amountCents: number | null;
   signature: string;
   /** ISO-8601 string when the chain reported a block time, null otherwise. */
   blockTime: string | null;
@@ -61,7 +71,7 @@ export function impactRoute(deps: { impacts: ImpactRepository }) {
         debtsRenegotiatedCents: IMPACT_MOCK.debtsRenegotiatedCents,
         marketplaceTransactions:
           IMPACT_MOCK.marketplaceTransactionsBaseline +
-          countByType(events, "marketplace_payment"),
+          countPaymentCompleted(events),
         monthOverMonth: IMPACT_MOCK.monthOverMonth,
         poolTotalCents: IMPACT_MOCK.poolTotalCents,
         yieldDistributedCents: IMPACT_MOCK.yieldDistributedCents,
@@ -98,11 +108,45 @@ function toTransaction(event: ImpactEvent): ImpactTransaction | null {
   ) {
     const amountCents = readU64(event.payload, "amount");
     if (amountCents === null) return null;
+    const isBnpl = event.payload.bnpl === true;
     return {
       id: `${event.signature}:${event.eventIndex}`,
-      type: "marketplace_payment",
-      description: `Pagamento de ${formatBRL(amountCents)} no marketplace`,
+      type: isBnpl ? "marketplace_bnpl_supplier_paid" : "marketplace_payment",
+      description: isBnpl
+        ? `Fornecedor recebeu ${formatBRL(amountCents)} à vista (BNPL)`
+        : `Pagamento de ${formatBRL(amountCents)} no marketplace`,
       amountCents,
+      signature: event.signature,
+      blockTime: event.blockTime?.toISOString() ?? null,
+    };
+  }
+  if (
+    event.programName === "marketplace" &&
+    event.eventName === "InstallmentPaid"
+  ) {
+    const paid = readU64(event.payload, "paid_installments");
+    const total = readU64(event.payload, "installment_count");
+    if (paid === null || total === null) return null;
+    return {
+      id: `${event.signature}:${event.eventIndex}`,
+      type: "marketplace_bnpl_installment_paid",
+      description: `Parcela ${paid}/${total} registrada on-chain`,
+      amountCents: null,
+      signature: event.signature,
+      blockTime: event.blockTime?.toISOString() ?? null,
+    };
+  }
+  if (
+    event.programName === "marketplace" &&
+    event.eventName === "BnplPlanCompleted"
+  ) {
+    const totalRepaid = readU64(event.payload, "total_repaid");
+    if (totalRepaid === null) return null;
+    return {
+      id: `${event.signature}:${event.eventIndex}`,
+      type: "marketplace_bnpl_completed",
+      description: `Plano BNPL quitado: ${formatBRL(totalRepaid)}`,
+      amountCents: totalRepaid,
       signature: event.signature,
       blockTime: event.blockTime?.toISOString() ?? null,
     };
@@ -110,19 +154,16 @@ function toTransaction(event: ImpactEvent): ImpactTransaction | null {
   return null;
 }
 
-function countByType(
-  events: ImpactEvent[],
-  type: ImpactTransactionType,
-): number {
-  if (type === "marketplace_payment") {
-    return events.filter(
-      (e) =>
-        e.programName === "marketplace" && e.eventName === "PaymentCompleted",
-    ).length;
-  }
+/**
+ * Count of `PaymentCompleted` events captured by the indexer — drives the
+ * headline `marketplaceTransactions` metric. Direct-pay AND BNPL hires both
+ * emit one `PaymentCompleted` for the supplier-upfront leg, so this counts
+ * them uniformly. `InstallmentPaid` is deliberately excluded so a single
+ * 4-installment plan doesn't appear as 4 separate marketplace transactions.
+ */
+function countPaymentCompleted(events: ImpactEvent[]): number {
   return events.filter(
-    (e) =>
-      e.programName === "loan_origination" && e.eventName === "LoanRequested",
+    (e) => e.programName === "marketplace" && e.eventName === "PaymentCompleted",
   ).length;
 }
 

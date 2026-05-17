@@ -9,6 +9,11 @@ import {
   ping,
 } from "./db/client.js";
 import { createLogger } from "./middleware/logger.js";
+import {
+  FixedTierEligibilityService,
+  ScoreBackedEligibilityService,
+  type BnplEligibilityService,
+} from "./services/bnpl_eligibility.js";
 import { HttpChatService } from "./services/chat.js";
 import { DrizzleImpactRepository } from "./services/impact.js";
 import {
@@ -66,10 +71,15 @@ async function main() {
 
   await ensureIndexerSchema(db);
 
+  const loanRepository = new InMemoryLoanRepository();
+  const marketplaceRepository = new InMemoryMarketplaceRepository();
+  const impactRepository = new DrizzleImpactRepository(db);
+
   let loanService: LoanService;
   let scoreService: ScoreService;
   let publicScoreService: PublicScoreService = new UnconfiguredPublicScoreService();
   let marketplaceService: MarketplaceService = new UnconfiguredMarketplaceService();
+  let bnplEligibility: BnplEligibilityService = new FixedTierEligibilityService("B");
   let indexer: IndexerWorker | null = null;
   if (env.SOLANA_RPC_URL && env.SOLANA_PAYER_SECRET_KEY) {
     const solanaClient = createSolanaClient({
@@ -80,14 +90,6 @@ async function main() {
       client: solanaClient,
       airdropBorrower: env.SOLANA_AIRDROP_BORROWER,
     });
-    marketplaceService = new SolanaMarketplaceService({
-      client: solanaClient,
-      airdropSigners: env.SOLANA_AIRDROP_BORROWER,
-    });
-    logger.info(
-      { rpcUrl: env.SOLANA_RPC_URL, airdrop: env.SOLANA_AIRDROP_BORROWER },
-      "loan + marketplace services: Solana orchestrators",
-    );
 
     if (env.SCORE_HMAC_PEPPER) {
       scoreService = new OrchestratedScoreService({
@@ -99,13 +101,25 @@ async function main() {
         client: solanaClient,
         hmacPepper: env.SCORE_HMAC_PEPPER,
       });
+      bnplEligibility = new ScoreBackedEligibilityService(scoreService);
       logger.info("score service: OrchestratedScoreService (public + persona)");
     } else {
       scoreService = new UnconfiguredScoreService();
       logger.warn(
-        "score service: unconfigured (set SCORE_HMAC_PEPPER to enable on-chain attest)",
+        "score service: unconfigured — BNPL eligibility falls back to fixed tier B",
       );
     }
+
+    marketplaceService = new SolanaMarketplaceService({
+      client: solanaClient,
+      airdropSigners: env.SOLANA_AIRDROP_BORROWER,
+      eligibility: bnplEligibility,
+      repository: marketplaceRepository,
+    });
+    logger.info(
+      { rpcUrl: env.SOLANA_RPC_URL, airdrop: env.SOLANA_AIRDROP_BORROWER },
+      "loan + marketplace services: Solana orchestrators",
+    );
 
     indexer = new IndexerWorker({
       programs: [
@@ -150,9 +164,6 @@ async function main() {
     );
     logger.warn("indexer worker disabled (no Solana client available)");
   }
-  const loanRepository = new InMemoryLoanRepository();
-  const marketplaceRepository = new InMemoryMarketplaceRepository();
-  const impactRepository = new DrizzleImpactRepository(db);
 
   const publicScoreApiKeys = env.SCORE_SAAS_DEMO_KEYS.split(",")
     .map((k) => k.trim())
@@ -165,6 +176,7 @@ async function main() {
     loanRepository,
     marketplaceService,
     marketplaceRepository,
+    bnplEligibility,
     scoreService,
     publicScoreService,
     impactRepository,

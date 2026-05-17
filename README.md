@@ -3,7 +3,7 @@
 A sustainable prosperity system for Brazilian women microentrepreneurs who are
 invisible to the traditional banking system. Tokenized treasury funding,
 alternative credit scoring auditable on-chain, a proactive AI assistant, and a
-B2B marketplace between entrepreneurs — all built on Solana.
+B2B marketplace with embedded BNPL — all built on Solana.
 
 > Built for the Solana RWA hackathon. MVP, devnet.
 
@@ -50,17 +50,19 @@ Every part of the product points at this one scripted flow:
                 └────────────────────────┘
 ```
 
-**Five Anchor programs** under `smartcontracts/programs/`:
+**Five Anchor programs** under `smartcontracts/programs/`, all deployed on Solana devnet:
 
-| Program | Purpose |
-|---|---|
-| `rwa_token` | Token-2022 RWA mint (controlled, audit-ready) |
-| `collateral_pool` | Tokenized funding pool backed by Brazilian Treasury |
-| `loan_origination` | Loan lifecycle: request → approve → disburse |
-| `score` | Privacy-preserving on-chain score (HMAC-keyed by CNPJ) |
-| `marketplace` | B2B payment requests between entrepreneurs |
+| Program | Devnet program ID | Purpose |
+|---|---|---|
+| `rwa_token` | [`CwVqgcBCZtGPYtCrvkFfLpBwhEXLvsb8Cr3KMsiyK655`](https://explorer.solana.com/address/CwVqgcBCZtGPYtCrvkFfLpBwhEXLvsb8Cr3KMsiyK655?cluster=devnet) | Token-2022 RWA mint (controlled, audit-ready) |
+| `collateral_pool` | [`9DqYSPMWaPBhoJ883KfgiaCiTgCWcZ9qhz4GBQ4CNrTw`](https://explorer.solana.com/address/9DqYSPMWaPBhoJ883KfgiaCiTgCWcZ9qhz4GBQ4CNrTw?cluster=devnet) | Tokenized funding pool backed by Brazilian Treasury |
+| `loan_origination` | [`99SfPmytt5sJrmCfvpjiG1WdPMCY9b9iNd8KLVdmBLPU`](https://explorer.solana.com/address/99SfPmytt5sJrmCfvpjiG1WdPMCY9b9iNd8KLVdmBLPU?cluster=devnet) | Loan lifecycle: request → approve → disburse |
+| `score` | [`HiFPcEVC89FHAYTRS5gHMDRGCS8YBMpKrTTcXVqLKP5d`](https://explorer.solana.com/address/HiFPcEVC89FHAYTRS5gHMDRGCS8YBMpKrTTcXVqLKP5d?cluster=devnet) | Privacy-preserving on-chain score (HMAC-keyed by CNPJ) |
+| `marketplace` | [`2BVJn1DY6Kzni1rXgc1ysZRNPRyKhmWZpyRYSh8x6ouh`](https://explorer.solana.com/address/2BVJn1DY6Kzni1rXgc1ysZRNPRyKhmWZpyRYSh8x6ouh?cluster=devnet) | B2B payment requests + embedded BNPL credit (v2) |
 
 `impact_hooks` (Token-2022 transfer hook) deferred post-MVP.
+
+The `marketplace` program is on v2 with two embedded modes: **direct pay** (`createPaymentRequest → payRequest`) and **B2B BNPL** (`createBnplRequest → payRequest{bnpl} → recordInstallment×N`). Same program ID — extended in place via `solana program extend`.
 
 **Score-as-a-Service** (Phase-2 monetization wedge): Maria's behavioral score is
 attested on-chain at `Score` PDA seeded by `HMAC-SHA256(server_pepper, cnpj)` —
@@ -176,7 +178,7 @@ To enable Web3Auth:
 
 ```bash
 # Backend (Vitest)
-cd backend && pnpm test                   # 86 tests
+cd backend && pnpm test                   # 109 tests
 
 # Frontend (Vitest)
 npx vitest run                            # 54 tests
@@ -185,7 +187,7 @@ npx vitest run                            # 54 tests
 cd ai_service && source .venv/bin/activate && pytest    # 32 tests
 
 # Anchor programs (Anchor + Mocha)
-cd smartcontracts && anchor test --provider.cluster localnet    # 35 tests
+cd smartcontracts && anchor test --provider.cluster localnet    # 43 tests
 ```
 
 > Always pass `--provider.cluster localnet` to `anchor test`. The repo's
@@ -205,8 +207,8 @@ Pydantic for I/O contracts.
 **Smart contracts**: Rust, Anchor 0.31+, Token-2022 (rwa_token), Borsh
 event coder for the indexer.
 
-**Infra**: Supabase Postgres, Solana devnet (program ID
-`2BVJn1DY6Kzni1rXgc1ysZRNPRyKhmWZpyRYSh8x6ouh` for marketplace).
+**Infra**: Supabase Postgres, Solana devnet. See the
+[Architecture](#architecture) section for the full list of program IDs.
 
 ## Status
 
@@ -216,12 +218,14 @@ MVP loop end-to-end on devnet:
 - ✅ Loan origination (request → approve → disburse, 3 on-chain txs)
 - ✅ On-chain behavioral score with HMAC-keyed PDAs
 - ✅ Score-as-a-Service public API with API key gate + rate limit
-- ✅ Marketplace (create payment request → pay)
+- ✅ Marketplace direct pay (create payment request → pay)
+- ✅ Marketplace v2: B2B BNPL embedded (create plan → pay supplier upfront → record installments on-chain)
 - ✅ Indexer worker tailing all 5 programs, populating `impact_events`
-- ✅ Impact dashboard pulling live events from the indexer
+- ✅ Impact dashboard pulling live events from the indexer (incl. BNPL events)
 - ✅ Partner sandbox at `/api-sandbox` for B2B score lookups
 - ✅ Web3Auth social login (demo-shaped — frontend gate only)
-- 🔜 Stable public deploy + demo rehearsal
+- 🔜 BNPL frontend flow (compare à vista vs parcelado, installment schedule UI)
+- 🔜 Demo rehearsal v2 covering both anchor scenarios
 
 ## Project language
 

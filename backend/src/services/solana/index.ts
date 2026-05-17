@@ -72,14 +72,20 @@ export {
 } from "./score.js";
 
 export {
+  bnplPlanPda,
   cancelRequest,
+  createBnplRequest,
   createPaymentRequest,
   nonceLeBytes,
   payRequest,
   paymentRequestPda,
+  recordInstallment,
   type CancelRequestParams,
+  type CreateBnplRequestParams,
+  type CreateBnplRequestResult,
   type CreatePaymentRequestParams,
   type CreatePaymentRequestResult,
   type PayRequestParams,
   type PaymentCategory,
+  type RecordInstallmentParams,
 } from "./marketplace.js";

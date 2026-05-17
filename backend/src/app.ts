@@ -15,6 +15,7 @@ import { marketplaceRoute } from "./routes/marketplace.js";
 import { meRoute } from "./routes/me.js";
 import { publicScoreRoute } from "./routes/public_score.js";
 import { scoreRoute } from "./routes/score.js";
+import type { BnplEligibilityService } from "./services/bnpl_eligibility.js";
 import type { ChatService } from "./services/chat.js";
 import type { ImpactRepository } from "./services/impact.js";
 import type { InsightsService } from "./services/insights.js";
@@ -35,6 +36,7 @@ export type AppDeps = {
   loanRepository: LoanRepository;
   marketplaceService: MarketplaceService;
   marketplaceRepository: MarketplaceRepository;
+  bnplEligibility: BnplEligibilityService;
   scoreService: ScoreService;
   publicScoreService: PublicScoreService;
   impactRepository: ImpactRepository;
@@ -100,6 +102,7 @@ export function createApp(deps: AppDeps) {
     marketplaceRoute({
       marketplace: deps.marketplaceService,
       marketplaceRepository: deps.marketplaceRepository,
+      bnplEligibility: deps.bnplEligibility,
     }),
   );
   protectedRoutes.route("/chat", chatRoute({ chat: deps.chatService }));

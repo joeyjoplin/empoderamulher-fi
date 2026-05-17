@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createApp } from "../src/app.js";
+import type { BnplEligibilityService } from "../src/services/bnpl_eligibility.js";
 import type { InsightsService } from "../src/services/insights.js";
 import type { LoanRepository, LoanService } from "../src/services/loans.js";
 import type {
@@ -11,6 +12,10 @@ import type {
 } from "../src/services/marketplace.js";
 import { InMemoryPersonaService } from "../src/services/persona.js";
 import type { Persona } from "../src/types/domain.js";
+import {
+  makeMarketplaceRepoStub,
+  makeMarketplaceStub,
+} from "./fixtures/marketplace_stubs.js";
 
 type ErrorBody = { error: { code: string; message?: string } };
 type DataBody<T> = { data: T };
@@ -54,15 +59,13 @@ const FAKE_HIRE: CompletedHire = {
 function buildApp(overrides: {
   marketplace: MarketplaceService;
   marketplaceRepo?: MarketplaceRepository;
+  bnplEligibility?: BnplEligibilityService;
 }) {
   const insights: InsightsService = { getProactiveAlert: vi.fn() };
   const loans: LoanService = { requestAndDisburse: vi.fn() };
   const loanRepo: LoanRepository = { save: vi.fn() };
   const repo: MarketplaceRepository =
-    overrides.marketplaceRepo ?? {
-      save: vi.fn().mockResolvedValue(undefined),
-      countHiresByBuyer: vi.fn().mockResolvedValue(0),
-    };
+    overrides.marketplaceRepo ?? makeMarketplaceRepoStub();
   return {
     app: createApp({
       personaService: new InMemoryPersonaService([MARIA, ANA]),
@@ -71,6 +74,7 @@ function buildApp(overrides: {
       loanRepository: loanRepo,
       marketplaceService: overrides.marketplace,
       marketplaceRepository: repo,
+      bnplEligibility: overrides.bnplEligibility ?? { evaluate: vi.fn() },
       scoreService: {
         fetchOnChainForPersona: vi.fn(),
         attestForPersona: vi.fn(),
@@ -87,7 +91,7 @@ function buildApp(overrides: {
 
 describe("POST /marketplace/hire", () => {
   it("returns 401 when X-Persona-Id is missing", async () => {
-    const marketplace: MarketplaceService = { hireProvider: vi.fn() };
+    const marketplace: MarketplaceService = makeMarketplaceStub();
     const { app } = buildApp({ marketplace });
     const res = await app.request("/marketplace/hire", {
       method: "POST",
@@ -104,7 +108,7 @@ describe("POST /marketplace/hire", () => {
   });
 
   it("returns 422 when the body fails Zod validation", async () => {
-    const marketplace: MarketplaceService = { hireProvider: vi.fn() };
+    const marketplace: MarketplaceService = makeMarketplaceStub();
     const { app } = buildApp({ marketplace });
     const res = await app.request("/marketplace/hire", {
       method: "POST",
@@ -125,7 +129,7 @@ describe("POST /marketplace/hire", () => {
   });
 
   it("returns 409 when buyer and provider are the same persona", async () => {
-    const marketplace: MarketplaceService = { hireProvider: vi.fn() };
+    const marketplace: MarketplaceService = makeMarketplaceStub();
     const { app } = buildApp({ marketplace });
     const res = await app.request("/marketplace/hire", {
       method: "POST",
@@ -148,11 +152,8 @@ describe("POST /marketplace/hire", () => {
 
   it("returns 200 with the completed hire envelope on the happy path", async () => {
     const hireProvider = vi.fn().mockResolvedValue(FAKE_HIRE);
-    const marketplace: MarketplaceService = { hireProvider };
-    const repo: MarketplaceRepository = {
-      save: vi.fn().mockResolvedValue(undefined),
-      countHiresByBuyer: vi.fn().mockResolvedValue(0),
-    };
+    const marketplace: MarketplaceService = makeMarketplaceStub({ hireProvider });
+    const repo: MarketplaceRepository = makeMarketplaceRepoStub();
     const { app } = buildApp({ marketplace, marketplaceRepo: repo });
 
     const res = await app.request("/marketplace/hire", {
@@ -198,11 +199,9 @@ describe("POST /marketplace/hire", () => {
           code: "create_payment_request_failed",
         }),
       );
-    const marketplace: MarketplaceService = { hireProvider };
-    const repo: MarketplaceRepository = {
-      save: vi.fn(),
-      countHiresByBuyer: vi.fn().mockResolvedValue(0),
-    };
+    const marketplace: MarketplaceService = makeMarketplaceStub({ hireProvider });
+    const save = vi.fn();
+    const repo: MarketplaceRepository = makeMarketplaceRepoStub({ save });
     const { app } = buildApp({ marketplace, marketplaceRepo: repo });
 
     const res = await app.request("/marketplace/hire", {
@@ -227,12 +226,11 @@ describe("POST /marketplace/hire", () => {
 
 describe("GET /marketplace/me/hires", () => {
   it("returns the buyer's hire count from the repository", async () => {
-    const marketplace: MarketplaceService = { hireProvider: vi.fn() };
+    const marketplace: MarketplaceService = makeMarketplaceStub();
     const countHiresByBuyer = vi.fn().mockResolvedValue(3);
-    const repo: MarketplaceRepository = {
-      save: vi.fn(),
+    const repo: MarketplaceRepository = makeMarketplaceRepoStub({
       countHiresByBuyer,
-    };
+    });
     const { app } = buildApp({ marketplace, marketplaceRepo: repo });
 
     const res = await app.request("/marketplace/me/hires", {

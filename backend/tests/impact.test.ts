@@ -21,8 +21,9 @@ function buildApp(events: ImpactEvent[] = []) {
     },
     publicScoreService: { lookupByCnpj: vi.fn() },
     publicScoreApiKeys: [],
-    marketplaceService: { hireProvider: vi.fn() },
-    marketplaceRepository: { save: vi.fn(), countHiresByBuyer: vi.fn() },
+    marketplaceService: { hireProvider: vi.fn(), quoteBnpl: vi.fn(), hireBnpl: vi.fn(), recordInstallment: vi.fn() },
+      bnplEligibility: { evaluate: vi.fn() },
+    marketplaceRepository: { save: vi.fn(), countHiresByBuyer: vi.fn(), saveBnplPlan: vi.fn(), findBnplPlanById: vi.fn(), updateBnplPlan: vi.fn(), listBnplPlansByBuyer: vi.fn().mockResolvedValue([]) },
     impactRepository: new InMemoryImpactRepository(events),
     chatService: { sendMessage: vi.fn() },
     authMode: "mock",
@@ -144,5 +145,114 @@ describe("GET /api/impact/dashboard", () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as DataBody<ImpactDashboardResponse>;
     expect(body.data.recentTransactions).toEqual([]);
+  });
+
+  it("projects PaymentCompleted with bnpl=true into marketplace_bnpl_supplier_paid", async () => {
+    const blockTime = new Date("2026-05-17T10:00:00Z");
+    const app = buildApp([
+      {
+        programName: "marketplace",
+        eventName: "PaymentCompleted",
+        signature: "SigSupplierUpfront",
+        eventIndex: 0,
+        blockTime,
+        payload: {
+          request: "RequestPda",
+          from: "BuyerPubkey",
+          to: "SupplierPubkey",
+          amount: 20_000,
+          bnpl: true,
+        },
+      },
+    ]);
+    const res = await app.request("/api/impact/dashboard");
+    const body = (await res.json()) as DataBody<ImpactDashboardResponse>;
+    expect(body.data.recentTransactions).toHaveLength(1);
+    expect(body.data.recentTransactions[0]).toMatchObject({
+      type: "marketplace_bnpl_supplier_paid",
+      amountCents: 20_000,
+      signature: "SigSupplierUpfront",
+    });
+    expect(body.data.recentTransactions[0]?.description).toContain("BNPL");
+  });
+
+  it("projects InstallmentPaid into marketplace_bnpl_installment_paid with null amount", async () => {
+    const app = buildApp([
+      {
+        programName: "marketplace",
+        eventName: "InstallmentPaid",
+        signature: "SigInstall1",
+        eventIndex: 0,
+        blockTime: new Date("2026-05-17T12:00:00Z"),
+        payload: {
+          plan: "PlanPda",
+          installment_index: 0,
+          paid_installments: 1,
+          installment_count: 2,
+        },
+      },
+    ]);
+    const res = await app.request("/api/impact/dashboard");
+    const body = (await res.json()) as DataBody<ImpactDashboardResponse>;
+    expect(body.data.recentTransactions).toHaveLength(1);
+    expect(body.data.recentTransactions[0]).toMatchObject({
+      type: "marketplace_bnpl_installment_paid",
+      amountCents: null,
+      signature: "SigInstall1",
+    });
+    expect(body.data.recentTransactions[0]?.description).toContain("1/2");
+  });
+
+  it("projects BnplPlanCompleted with total_repaid into marketplace_bnpl_completed", async () => {
+    const app = buildApp([
+      {
+        programName: "marketplace",
+        eventName: "BnplPlanCompleted",
+        signature: "SigPlanDone",
+        eventIndex: 0,
+        blockTime: new Date("2026-05-17T15:00:00Z"),
+        payload: { plan: "PlanPda", total_repaid: 21_600 },
+      },
+    ]);
+    const res = await app.request("/api/impact/dashboard");
+    const body = (await res.json()) as DataBody<ImpactDashboardResponse>;
+    expect(body.data.recentTransactions[0]).toMatchObject({
+      type: "marketplace_bnpl_completed",
+      amountCents: 21_600,
+    });
+  });
+
+  it("does NOT bump marketplaceTransactions for InstallmentPaid events", async () => {
+    // One supplier-upfront PaymentCompleted (counts) + four InstallmentPaid
+    // (must NOT count) — counter increments by 1, not 5.
+    const events: ImpactEvent[] = [
+      {
+        programName: "marketplace",
+        eventName: "PaymentCompleted",
+        signature: "SigSupplierUpfront",
+        eventIndex: 0,
+        blockTime: new Date("2026-05-17T10:00:00Z"),
+        payload: { amount: 20_000, bnpl: true },
+      },
+      ...Array.from({ length: 4 }, (_, i) => ({
+        programName: "marketplace",
+        eventName: "InstallmentPaid",
+        signature: `SigInstall${i}`,
+        eventIndex: 0,
+        blockTime: new Date(`2026-05-17T${11 + i}:00:00Z`),
+        payload: {
+          plan: "PlanPda",
+          installment_index: i,
+          paid_installments: i + 1,
+          installment_count: 4,
+        },
+      })),
+    ];
+    const app = buildApp(events);
+    const res = await app.request("/api/impact/dashboard");
+    const body = (await res.json()) as DataBody<ImpactDashboardResponse>;
+    expect(body.data.metrics.marketplaceTransactions).toBe(
+      IMPACT_MOCK.marketplaceTransactionsBaseline + 1,
+    );
   });
 });

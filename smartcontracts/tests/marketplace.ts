@@ -5,6 +5,7 @@ import { assert, expect } from "chai";
 import { Marketplace } from "../target/types/marketplace";
 
 const PAYMENT_SEED = Buffer.from("payment");
+const BNPL_SEED = Buffer.from("bnpl");
 
 function nonceLeBytes(nonce: bigint): Buffer {
   const buf = Buffer.alloc(8);
@@ -20,6 +21,18 @@ function paymentPda(
 ): PublicKey {
   const [pda] = PublicKey.findProgramAddressSync(
     [PAYMENT_SEED, buyer.toBuffer(), provider.toBuffer(), nonceLeBytes(nonce)],
+    programId,
+  );
+  return pda;
+}
+
+function bnplPlanPda(
+  programId: PublicKey,
+  paymentRequest: PublicKey,
+  buyer: PublicKey,
+): PublicKey {
+  const [pda] = PublicKey.findProgramAddressSync(
+    [BNPL_SEED, paymentRequest.toBuffer(), buyer.toBuffer()],
     programId,
   );
   return pda;
@@ -119,9 +132,10 @@ describe("marketplace", () => {
 
     await program.methods
       .payRequest(new BN(nonce.toString()))
-      .accounts({
+      .accountsPartial({
         buyer: maria.publicKey,
         request,
+        bnplPlan: null,
       })
       .signers([maria])
       .rpc();
@@ -237,14 +251,14 @@ describe("marketplace", () => {
 
     await program.methods
       .payRequest(new BN(nonce.toString()))
-      .accounts({ buyer: maria.publicKey, request })
+      .accountsPartial({ buyer: maria.publicKey, request, bnplPlan: null })
       .signers([maria])
       .rpc();
 
     try {
       await program.methods
         .payRequest(new BN(nonce.toString()))
-        .accounts({ buyer: maria.publicKey, request })
+        .accountsPartial({ buyer: maria.publicKey, request, bnplPlan: null })
         .signers([maria])
         .rpc();
       assert.fail("expected double-pay to fail with InvalidStatus");
@@ -321,6 +335,404 @@ describe("marketplace", () => {
     } catch (err) {
       const anchorErr = err as AnchorError;
       expect(anchorErr.error?.errorCode?.code).to.equal("InvalidAmount");
+    }
+  });
+
+  // ──────────────────────────────────────────────────────────────────────
+  // BNPL (Marketplace v2)
+  //
+  // Buyer-initiated BNPL flow: `create_bnpl_request` opens both the
+  // PaymentRequest (Pending) and the BnplPlan (Active) in one tx; the
+  // backend follows up with `pay_request` (passing the bnpl_plan
+  // account) to record the supplier-upfront payout, which emits
+  // `PaymentCompleted { bnpl: true }`. The buyer then records each
+  // installment via `record_installment`. When the last installment is
+  // recorded the plan flips to Completed and emits `BnplPlanCompleted`.
+  // ──────────────────────────────────────────────────────────────────────
+
+  /** Convenience: returns a `first_due_at` ~30 days in the future as i64 seconds. */
+  const future30d = (): BN =>
+    new BN(Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60);
+
+  it("buyer creates a BNPL request — both PaymentRequest and BnplPlan are initialized", async () => {
+    const nonce = nextNonce();
+    const request = paymentPda(
+      program.programId,
+      maria.publicKey,
+      ana.publicKey,
+      nonce,
+    );
+    const plan = bnplPlanPda(program.programId, request, maria.publicKey);
+
+    await program.methods
+      .createBnplRequest(
+        new BN(nonce.toString()),
+        new BN(20000), // principal_amount: R$ 200,00
+        new BN(21000), // total_repayable: R$ 210,00 (5% embedded)
+        2, // installment_count
+        new BN(10500), // installment_amount: R$ 105,00 each
+        future30d(),
+        { supplies: {} },
+        "Insumos parcelados em 2x",
+      )
+      .accountsPartial({
+        buyer: maria.publicKey,
+        provider: ana.publicKey,
+        request,
+        plan,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([maria])
+      .rpc();
+
+    const storedRequest = await program.account.paymentRequest.fetch(request);
+    expect(storedRequest.amount.toNumber()).to.equal(20000);
+    expect(storedRequest.status).to.deep.equal({ pending: {} });
+
+    const storedPlan = await program.account.bnplPlan.fetch(plan);
+    expect(storedPlan.paymentRequest.toBase58()).to.equal(request.toBase58());
+    expect(storedPlan.buyer.toBase58()).to.equal(maria.publicKey.toBase58());
+    expect(storedPlan.principalAmount.toNumber()).to.equal(20000);
+    expect(storedPlan.totalRepayable.toNumber()).to.equal(21000);
+    expect(storedPlan.installmentCount).to.equal(2);
+    expect(storedPlan.installmentAmount.toNumber()).to.equal(10500);
+    expect(storedPlan.paidInstallments).to.equal(0);
+    expect(storedPlan.status).to.deep.equal({ active: {} });
+  });
+
+  it("create_bnpl_request → pay_request flips PaymentRequest to Paid (supplier upfront)", async () => {
+    const nonce = nextNonce();
+    const request = paymentPda(
+      program.programId,
+      maria.publicKey,
+      ana.publicKey,
+      nonce,
+    );
+    const plan = bnplPlanPda(program.programId, request, maria.publicKey);
+
+    await program.methods
+      .createBnplRequest(
+        new BN(nonce.toString()),
+        new BN(15000),
+        new BN(15750),
+        3,
+        new BN(5250),
+        future30d(),
+        { services: {} },
+        "Serviço parcelado em 3x",
+      )
+      .accountsPartial({
+        buyer: maria.publicKey,
+        provider: ana.publicKey,
+        request,
+        plan,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([maria])
+      .rpc();
+
+    // Supplier-upfront leg: pay_request with bnpl_plan present → bnpl=true
+    await program.methods
+      .payRequest(new BN(nonce.toString()))
+      .accountsPartial({
+        buyer: maria.publicKey,
+        request,
+        bnplPlan: plan,
+      })
+      .signers([maria])
+      .rpc();
+
+    const storedRequest = await program.account.paymentRequest.fetch(request);
+    expect(storedRequest.status).to.deep.equal({ paid: {} });
+    expect(storedRequest.paidAt.toNumber()).to.be.greaterThan(0);
+
+    // Plan still Active — supplier was paid upfront, buyer still owes installments.
+    const storedPlan = await program.account.bnplPlan.fetch(plan);
+    expect(storedPlan.status).to.deep.equal({ active: {} });
+    expect(storedPlan.paidInstallments).to.equal(0);
+  });
+
+  it("record_installment x N flips plan to Completed on the final installment", async () => {
+    const nonce = nextNonce();
+    const request = paymentPda(
+      program.programId,
+      maria.publicKey,
+      ana.publicKey,
+      nonce,
+    );
+    const plan = bnplPlanPda(program.programId, request, maria.publicKey);
+
+    await program.methods
+      .createBnplRequest(
+        new BN(nonce.toString()),
+        new BN(10000),
+        new BN(10500),
+        2,
+        new BN(5250),
+        future30d(),
+        { other: {} },
+        "Plano de 2x para encerrar",
+      )
+      .accountsPartial({
+        buyer: maria.publicKey,
+        provider: ana.publicKey,
+        request,
+        plan,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([maria])
+      .rpc();
+
+    // First installment — plan still Active.
+    await program.methods
+      .recordInstallment(new BN(nonce.toString()), 0)
+      .accountsPartial({
+        buyer: maria.publicKey,
+        request,
+        plan,
+      })
+      .signers([maria])
+      .rpc();
+    let storedPlan = await program.account.bnplPlan.fetch(plan);
+    expect(storedPlan.paidInstallments).to.equal(1);
+    expect(storedPlan.status).to.deep.equal({ active: {} });
+
+    // Second installment — plan flips to Completed.
+    await program.methods
+      .recordInstallment(new BN(nonce.toString()), 1)
+      .accountsPartial({
+        buyer: maria.publicKey,
+        request,
+        plan,
+      })
+      .signers([maria])
+      .rpc();
+    storedPlan = await program.account.bnplPlan.fetch(plan);
+    expect(storedPlan.paidInstallments).to.equal(2);
+    expect(storedPlan.status).to.deep.equal({ completed: {} });
+  });
+
+  it("rejects record_installment after the plan is already complete", async () => {
+    const nonce = nextNonce();
+    const request = paymentPda(
+      program.programId,
+      maria.publicKey,
+      ana.publicKey,
+      nonce,
+    );
+    const plan = bnplPlanPda(program.programId, request, maria.publicKey);
+
+    await program.methods
+      .createBnplRequest(
+        new BN(nonce.toString()),
+        new BN(8000),
+        new BN(8400),
+        1, // single installment so we can complete + try to over-pay quickly
+        new BN(8400),
+        future30d(),
+        { packaging: {} },
+        "Plano de 1x",
+      )
+      .accountsPartial({
+        buyer: maria.publicKey,
+        provider: ana.publicKey,
+        request,
+        plan,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([maria])
+      .rpc();
+
+    await program.methods
+      .recordInstallment(new BN(nonce.toString()), 0)
+      .accountsPartial({ buyer: maria.publicKey, request, plan })
+      .signers([maria])
+      .rpc();
+
+    try {
+      await program.methods
+        .recordInstallment(new BN(nonce.toString()), 1)
+        .accountsPartial({ buyer: maria.publicKey, request, plan })
+        .signers([maria])
+        .rpc();
+      assert.fail("expected over-installment to fail with BnplAlreadyComplete");
+    } catch (err) {
+      const anchorErr = err as AnchorError;
+      expect(anchorErr.error?.errorCode?.code).to.equal("BnplAlreadyComplete");
+    }
+  });
+
+  it("rejects record_installment with an out-of-order index", async () => {
+    const nonce = nextNonce();
+    const request = paymentPda(
+      program.programId,
+      maria.publicKey,
+      ana.publicKey,
+      nonce,
+    );
+    const plan = bnplPlanPda(program.programId, request, maria.publicKey);
+
+    await program.methods
+      .createBnplRequest(
+        new BN(nonce.toString()),
+        new BN(12000),
+        new BN(12600),
+        3,
+        new BN(4200),
+        future30d(),
+        { services: {} },
+        "Plano de 3x — testar ordem",
+      )
+      .accountsPartial({
+        buyer: maria.publicKey,
+        provider: ana.publicKey,
+        request,
+        plan,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([maria])
+      .rpc();
+
+    // Skip ahead — try to record installment_index = 1 before recording 0.
+    try {
+      await program.methods
+        .recordInstallment(new BN(nonce.toString()), 1)
+        .accountsPartial({ buyer: maria.publicKey, request, plan })
+        .signers([maria])
+        .rpc();
+      assert.fail("expected out-of-order index to fail with InvalidInstallmentOrder");
+    } catch (err) {
+      const anchorErr = err as AnchorError;
+      expect(anchorErr.error?.errorCode?.code).to.equal("InvalidInstallmentOrder");
+    }
+  });
+
+  it("rejects record_installment when an unrelated party signs", async () => {
+    const nonce = nextNonce();
+    const request = paymentPda(
+      program.programId,
+      maria.publicKey,
+      ana.publicKey,
+      nonce,
+    );
+    const plan = bnplPlanPda(program.programId, request, maria.publicKey);
+
+    await program.methods
+      .createBnplRequest(
+        new BN(nonce.toString()),
+        new BN(6000),
+        new BN(6300),
+        2,
+        new BN(3150),
+        future30d(),
+        { other: {} },
+        "Plano para testar signer",
+      )
+      .accountsPartial({
+        buyer: maria.publicKey,
+        provider: ana.publicKey,
+        request,
+        plan,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([maria])
+      .rpc();
+
+    // The intruder is neither the buyer nor a party to the plan.
+    try {
+      await program.methods
+        .recordInstallment(new BN(nonce.toString()), 0)
+        .accountsPartial({ buyer: intruder.publicKey, request, plan })
+        .signers([intruder])
+        .rpc();
+      assert.fail("expected wrong-signer to fail");
+    } catch (err) {
+      // Constraint failures land here; we accept either Unauthorized
+      // (our typed error) or the seeds-mismatch ConstraintSeeds, since
+      // changing the buyer also changes the PDA derivation chain.
+      const anchorErr = err as AnchorError;
+      expect(["Unauthorized", "ConstraintSeeds"]).to.include(
+        anchorErr.error?.errorCode?.code ?? "",
+      );
+    }
+  });
+
+  it("rejects create_bnpl_request with installment_count out of range (0 or > MAX_INSTALLMENTS)", async () => {
+    const nonce = nextNonce();
+    const request = paymentPda(
+      program.programId,
+      maria.publicKey,
+      ana.publicKey,
+      nonce,
+    );
+    const plan = bnplPlanPda(program.programId, request, maria.publicKey);
+
+    try {
+      await program.methods
+        .createBnplRequest(
+          new BN(nonce.toString()),
+          new BN(10000),
+          new BN(10500),
+          0, // invalid: must be >= 1
+          new BN(0),
+          future30d(),
+          { other: {} },
+          "Zero installments",
+        )
+        .accountsPartial({
+          buyer: maria.publicKey,
+          provider: ana.publicKey,
+          request,
+          plan,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([maria])
+        .rpc();
+      assert.fail("expected installment_count=0 to fail");
+    } catch (err) {
+      const anchorErr = err as AnchorError;
+      expect(anchorErr.error?.errorCode?.code).to.be.oneOf([
+        "BnplInstallmentCountOutOfRange",
+        "InvalidAmount", // installment_amount=0 may trip this first
+      ]);
+    }
+  });
+
+  it("rejects create_bnpl_request with first_due_at in the past", async () => {
+    const nonce = nextNonce();
+    const request = paymentPda(
+      program.programId,
+      maria.publicKey,
+      ana.publicKey,
+      nonce,
+    );
+    const plan = bnplPlanPda(program.programId, request, maria.publicKey);
+
+    try {
+      await program.methods
+        .createBnplRequest(
+          new BN(nonce.toString()),
+          new BN(10000),
+          new BN(10500),
+          2,
+          new BN(5250),
+          new BN(Math.floor(Date.now() / 1000) - 60), // 1min in the past
+          { other: {} },
+          "Past due date",
+        )
+        .accountsPartial({
+          buyer: maria.publicKey,
+          provider: ana.publicKey,
+          request,
+          plan,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([maria])
+        .rpc();
+      assert.fail("expected past first_due_at to fail with BnplFirstDueInPast");
+    } catch (err) {
+      const anchorErr = err as AnchorError;
+      expect(anchorErr.error?.errorCode?.code).to.equal("BnplFirstDueInPast");
     }
   });
 });
