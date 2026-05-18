@@ -181,7 +181,7 @@ To enable Web3Auth:
 cd backend && pnpm test                   # 109 tests
 
 # Frontend (Vitest)
-npx vitest run                            # 54 tests
+npx vitest run                            # 63 tests
 
 # AI service (pytest)
 cd ai_service && source .venv/bin/activate && pytest    # 32 tests
@@ -212,20 +212,27 @@ event coder for the indexer.
 
 ## Status
 
-MVP loop end-to-end on devnet:
+Both demo loops end-to-end on devnet:
+
+**Primary (Maria — credit + score)**
 - ✅ Synthetic personas (Maria / Ana / Julia) with on-chain wallets
 - ✅ Proactive AI alerts (cash-flow gap detection from transaction history)
 - ✅ Loan origination (request → approve → disburse, 3 on-chain txs)
 - ✅ On-chain behavioral score with HMAC-keyed PDAs
 - ✅ Score-as-a-Service public API with API key gate + rate limit
-- ✅ Marketplace direct pay (create payment request → pay)
-- ✅ Marketplace v2: B2B BNPL embedded (create plan → pay supplier upfront → record installments on-chain)
-- ✅ Indexer worker tailing all 5 programs, populating `impact_events`
-- ✅ Impact dashboard pulling live events from the indexer (incl. BNPL events)
 - ✅ Partner sandbox at `/api-sandbox` for B2B score lookups
 - ✅ Web3Auth social login (demo-shaped — frontend gate only)
-- 🔜 BNPL frontend flow (compare à vista vs parcelado, installment schedule UI)
-- 🔜 Demo rehearsal v2 covering both anchor scenarios
+
+**Secondary (Ana — B2B marketplace + embedded BNPL)**
+- ✅ Marketplace direct pay (create payment request → pay)
+- ✅ Marketplace v2: B2B BNPL embedded (create plan → pay supplier upfront → record installments on-chain)
+- ✅ BNPL frontend flow (toggle à vista / parcelado, comparison page, installment schedule, success screens with both Explorer links)
+- ✅ Dashboard widget surfacing buyer's active BNPL plans + next-installment due
+
+**Shared infra**
+- ✅ Indexer worker tailing all 5 programs, populating `impact_events`
+- ✅ Impact dashboard pulling live events from the indexer (incl. all 3 BNPL event types, tagged per row)
+- 🔜 Stable production redeploy + smoke test (TASK 5.5)
 
 ## Project language
 

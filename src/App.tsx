@@ -19,6 +19,8 @@ import ChatPage from "./pages/ChatPage.tsx";
 import MarketplacePage from "./pages/MarketplacePage.tsx";
 import ContratarPage from "./pages/ContratarPage.tsx";
 import ContratarSucessoPage from "./pages/ContratarSucessoPage.tsx";
+import BnplComparePage from "./pages/BnplComparePage.tsx";
+import BnplSucessoPage from "./pages/BnplSucessoPage.tsx";
 import CobrarPage from "./pages/CobrarPage.tsx";
 import HistoricoPage from "./pages/HistoricoPage.tsx";
 import ImpactoPage from "./pages/ImpactoPage.tsx";
@@ -76,7 +78,9 @@ const App = () => (
                   <Route path="/chat" element={<ChatPage />} />
                   <Route path="/marketplace" element={<MarketplacePage />} />
                   <Route path="/marketplace/contratar/:id" element={<ContratarPage />} />
+                  <Route path="/marketplace/contratar/:id/parcelado" element={<BnplComparePage />} />
                   <Route path="/marketplace/sucesso" element={<ContratarSucessoPage />} />
+                  <Route path="/marketplace/parcelado/sucesso" element={<BnplSucessoPage />} />
                   <Route path="/marketplace/cobrar" element={<CobrarPage />} />
                   <Route path="/historico" element={<HistoricoPage />} />
                   <Route path="/impacto" element={<ImpactoPage />} />

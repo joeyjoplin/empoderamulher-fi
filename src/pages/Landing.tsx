@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, Loader2, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 
 import { useAuth } from "@/auth/AuthProvider";
 
@@ -41,8 +41,7 @@ export default function Landing() {
             Crédito justo, organização e uma assistente que olha pelo seu negócio.
           </h1>
           <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-            EmpowerFI é a fintech feita para microempreendedoras brasileiras.
-            Sem letra miúda, sem cheque especial caro, sem juízo.
+            EmpowerFI é a fintech feita para microempreendedoras.
           </p>
 
           {mode === "web3auth" ? (
@@ -87,26 +86,6 @@ export default function Landing() {
                 : "Demo: você entra como Maria, confeiteira em SP."}
             </p>
           )}
-        </section>
-
-        <section className="mt-12 grid gap-4">
-          {[
-            { Icon: Sparkles, title: "IA proativa", desc: "Avisa antes da quebra de fluxo, com soluções concretas." },
-            { Icon: TrendingUp, title: "Score gamificado", desc: "Construa reputação financeira com ações reais." },
-            { Icon: ShieldCheck, title: "Crédito justo", desc: "4% ao mês, sem surpresas. Lastreado em Tesouro Nacional." },
-          ].map(({ Icon, title, desc }) => (
-            <div key={title} className="rounded-xl border border-border bg-card p-4">
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
-                  <Icon className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="text-[15px] font-semibold text-foreground">{title}</div>
-                  <div className="mt-1 text-sm text-muted-foreground">{desc}</div>
-                </div>
-              </div>
-            </div>
-          ))}
         </section>
       </main>
     </div>

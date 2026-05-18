@@ -2,8 +2,12 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowLeftRight,
+  CalendarCheck,
+  CheckCircle2,
   ExternalLink,
   HandCoins,
+  Handshake,
+  type LucideIcon,
   RefreshCw,
   ShoppingBag,
   TrendingDown,
@@ -224,8 +228,33 @@ function TransactionSkeletonList() {
   );
 }
 
+/**
+ * Per-type visual metadata. `tag` shows up as a small label above the
+ * row description so a viewer can scan the list and tell "loan vs
+ * marketplace direct vs BNPL supplier vs BNPL installment vs BNPL closed".
+ */
+const TX_VISUALS: Record<
+  ImpactTransaction["type"],
+  { Icon: LucideIcon; tag: string }
+> = {
+  loan_disbursed: { Icon: HandCoins, tag: "Empréstimo" },
+  marketplace_payment: { Icon: ShoppingBag, tag: "Marketplace" },
+  marketplace_bnpl_supplier_paid: {
+    Icon: Handshake,
+    tag: "BNPL — fornecedor pago",
+  },
+  marketplace_bnpl_installment_paid: {
+    Icon: CalendarCheck,
+    tag: "BNPL — parcela paga",
+  },
+  marketplace_bnpl_completed: {
+    Icon: CheckCircle2,
+    tag: "BNPL — plano quitado",
+  },
+};
+
 function TransactionRow({ tx }: { tx: ImpactTransaction }) {
-  const Icon = tx.type === "loan_disbursed" ? HandCoins : ShoppingBag;
+  const { Icon, tag } = TX_VISUALS[tx.type];
   const explorerUrl = `https://explorer.solana.com/tx/${tx.signature}?cluster=devnet`;
   const shortSig =
     tx.signature.length > 16
@@ -239,6 +268,9 @@ function TransactionRow({ tx }: { tx: ImpactTransaction }) {
           <Icon className="h-4 w-4" />
         </div>
         <div className="flex-1 min-w-0">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            {tag}
+          </span>
           <p className="text-sm text-foreground">{tx.description}</p>
           <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground">
             <span>{formatRelativeTime(tx.blockTime)}</span>
@@ -256,9 +288,11 @@ function TransactionRow({ tx }: { tx: ImpactTransaction }) {
             Ver no Solana Explorer <ExternalLink className="h-3 w-3" />
           </a>
         </div>
-        <div className="text-sm font-semibold text-primary">
-          {formatBRL(tx.amountCents / 100)}
-        </div>
+        {tx.amountCents !== null ? (
+          <div className="text-sm font-semibold text-primary">
+            {formatBRL(tx.amountCents / 100)}
+          </div>
+        ) : null}
       </div>
     </article>
   );

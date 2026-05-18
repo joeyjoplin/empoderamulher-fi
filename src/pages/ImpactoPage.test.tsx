@@ -106,6 +106,68 @@ describe("<ImpactoPage />", () => {
     );
   });
 
+  it("tags BNPL events with their type and omits the amount column for installments", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          data: {
+            ...SUCCESS_BODY.data,
+            recentTransactions: [
+              {
+                id: "SigSupplier:0",
+                type: "marketplace_bnpl_supplier_paid",
+                description: "Fornecedor recebeu R$ 80,00 à vista (BNPL)",
+                amountCents: 8_000,
+                signature: "5xrSigSupplier1111111111111111111111111111111111111111111111",
+                blockTime: new Date(Date.now() - 5 * 60_000).toISOString(),
+              },
+              {
+                id: "SigInstall:0",
+                type: "marketplace_bnpl_installment_paid",
+                description: "Parcela 1/2 registrada on-chain",
+                amountCents: null,
+                signature: "5xrSigInstall11111111111111111111111111111111111111111111111",
+                blockTime: new Date(Date.now() - 3 * 60_000).toISOString(),
+              },
+              {
+                id: "SigDone:0",
+                type: "marketplace_bnpl_completed",
+                description: "Plano BNPL quitado: R$ 86,40",
+                amountCents: 8_640,
+                signature: "5xrSigDone111111111111111111111111111111111111111111111111111",
+                blockTime: new Date(Date.now() - 60_000).toISOString(),
+              },
+            ],
+          },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+
+    renderPage();
+
+    await screen.findByText(/Fornecedor recebeu R\$\s*80,00 à vista \(BNPL\)/);
+    // Each BNPL row carries its tag in the muted uppercase label.
+    expect(screen.getByText(/BNPL — fornecedor pago/)).toBeInTheDocument();
+    expect(screen.getByText(/BNPL — parcela paga/)).toBeInTheDocument();
+    expect(screen.getByText(/BNPL — plano quitado/)).toBeInTheDocument();
+
+    // The installment row description is present but the amount column is NOT
+    // rendered — confirmed by checking the row's enclosing article doesn't
+    // include a price string.
+    const installmentRow = screen
+      .getByText("Parcela 1/2 registrada on-chain")
+      .closest("article");
+    expect(installmentRow).not.toBeNull();
+    expect(installmentRow?.textContent).not.toMatch(/R\$\s*\d/);
+
+    // The completed-plan row DOES render its amount.
+    const completedRow = screen
+      .getByText(/Plano BNPL quitado/)
+      .closest("article");
+    expect(completedRow?.textContent).toMatch(/R\$\s*86,40/);
+  });
+
   it("falls back to local mocked metrics if the dashboard endpoint fails", async () => {
     fetchMock.mockRejectedValueOnce(new Error("network down"));
 

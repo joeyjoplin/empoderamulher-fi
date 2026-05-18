@@ -1,12 +1,22 @@
 import type { ApiClient } from "./client";
 
-export type ImpactTransactionType = "loan_disbursed" | "marketplace_payment";
+export type ImpactTransactionType =
+  | "loan_disbursed"
+  | "marketplace_payment"
+  | "marketplace_bnpl_supplier_paid"
+  | "marketplace_bnpl_installment_paid"
+  | "marketplace_bnpl_completed";
 
 export type ImpactTransaction = {
   id: string;
   type: ImpactTransactionType;
   description: string;
-  amountCents: number;
+  /**
+   * Cents for events that carry a monetary value. `null` for
+   * `marketplace_bnpl_installment_paid`, which only records a progress
+   * counter on-chain.
+   */
+  amountCents: number | null;
   signature: string;
   blockTime: string | null;
 };

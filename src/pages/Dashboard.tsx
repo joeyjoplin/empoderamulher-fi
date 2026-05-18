@@ -3,6 +3,7 @@ import { ChatFAB } from "@/components/ChatFAB";
 import { ProactiveAlert } from "@/components/dashboard/ProactiveAlert";
 import { ScoreWidget } from "@/components/dashboard/ScoreWidget";
 import { ImpactMiniCard } from "@/components/dashboard/ImpactMiniCard";
+import { BnplActivePlansCard } from "@/components/dashboard/BnplActivePlansCard";
 import { usePersona } from "@/context/PersonaContext";
 import { formatBRL, greeting } from "@/lib/format";
 import { ArrowRight, CalendarClock, Heart, TrendingUp, Wallet } from "lucide-react";
@@ -63,6 +64,8 @@ export default function Dashboard() {
         </section>
 
         <ImpactMiniCard />
+
+        <BnplActivePlansCard />
 
         <Link
           to="/marketplace"

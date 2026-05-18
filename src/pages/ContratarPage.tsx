@@ -1,4 +1,8 @@
 import { AppHeader } from "@/components/AppHeader";
+import {
+  PaymentModeToggle,
+  type PaymentMode,
+} from "@/components/marketplace/PaymentModeToggle";
 import { marketplaceListings } from "@/data/impactData";
 import { formatBRL } from "@/lib/format";
 import { useImpact } from "@/context/ImpactContext";
@@ -6,7 +10,7 @@ import { useApiClient } from "@/api/ApiClientProvider";
 import { hireProvider, type CompletedHire } from "@/api/marketplace";
 import { friendlyError } from "@/lib/error-copy";
 import { AlertCircle, Heart, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 
 const STEPS = [
@@ -27,6 +31,15 @@ export default function ContratarPage() {
   const { registerHire } = useImpact();
   const merchant = marketplaceListings.find((m) => m.id === id);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
+  const [mode, setMode] = useState<PaymentMode>("direct");
+
+  // Selecting "Parcelado" routes to the comparison page — the BNPL flow has
+  // its own pricing fetch + confirmation step so it doesn't live in here.
+  useEffect(() => {
+    if (mode === "bnpl" && merchant) {
+      navigate(`/marketplace/contratar/${merchant.id}/parcelado`);
+    }
+  }, [mode, merchant, navigate]);
 
   if (!merchant || merchant.isSelf) {
     return (
@@ -146,6 +159,8 @@ export default function ContratarPage() {
         <h1 className="text-xl font-semibold tracking-tight text-primary">
           Contratar {merchant.sellerName}
         </h1>
+
+        <PaymentModeToggle value={mode} onChange={setMode} />
 
         <div className="rounded-xl border-2 border-primary/20 bg-card p-4 shadow-sm">
           <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
