@@ -8,6 +8,10 @@ from fastapi.testclient import TestClient
 # Ensure the app reads from a deterministic, fake env in tests.
 os.environ.setdefault("ANTHROPIC_API_KEY", "test-key")
 os.environ.setdefault("LOG_LEVEL", "warning")
+# Skip startup persona seeding in tests — tests that need personas seed them
+# explicitly via their own fixtures, so re-running on every TestClient init
+# would just be extra I/O against the default sqlite file.
+os.environ.setdefault("SEED_PERSONAS_ON_STARTUP", "false")
 
 from app.api.deps import get_anthropic_client  # noqa: E402
 from app.main import create_app  # noqa: E402

@@ -21,23 +21,28 @@ def test_generates_three_personas() -> None:
 def test_marias_anchor_scenario_yields_a_380_deficit_in_the_next_9_days() -> None:
     personas = generate_personas(now=FROZEN_NOW)
     maria = _find_by_business_type(personas, "confeiteira")
-
-    window_end = FROZEN_NOW + timedelta(days=9)
-    upcoming = [
-        t
-        for t in maria.transactions
-        if FROZEN_NOW < t.occurred_at <= window_end
-    ]
-
-    obligations = sum(
-        (t.amount for t in upcoming if t.amount < 0), Decimal(0)
-    )
-    expected_inflows = sum(
-        (t.amount for t in upcoming if t.amount > 0), Decimal(0)
-    )
+    obligations, inflows = _window_totals(maria, FROZEN_NOW, days=9)
     assert obligations == Decimal("-1200")
-    assert expected_inflows == Decimal("820")
-    assert obligations + expected_inflows == Decimal("-380")
+    assert inflows == Decimal("820")
+    assert obligations + inflows == Decimal("-380")
+
+
+def test_anas_forward_window_yields_a_255_deficit() -> None:
+    personas = generate_personas(now=FROZEN_NOW)
+    ana = _find_by_business_type(personas, "marmiteira")
+    obligations, inflows = _window_totals(ana, FROZEN_NOW, days=9)
+    assert obligations == Decimal("-955")
+    assert inflows == Decimal("700")
+    assert obligations + inflows == Decimal("-255")
+
+
+def test_julias_forward_window_yields_a_825_deficit() -> None:
+    personas = generate_personas(now=FROZEN_NOW)
+    julia = _find_by_business_type(personas, "doces_gourmet")
+    obligations, inflows = _window_totals(julia, FROZEN_NOW, days=9)
+    assert obligations == Decimal("-1825")
+    assert inflows == Decimal("1000")
+    assert obligations + inflows == Decimal("-825")
 
 
 def test_each_persona_has_90_days_of_historical_transactions() -> None:
@@ -72,3 +77,15 @@ def _find_by_business_type(
     personas: list[GeneratedPersona], business_type: str
 ) -> GeneratedPersona:
     return next(p for p in personas if p.business_type == business_type)
+
+
+def _window_totals(
+    persona: GeneratedPersona, ref: datetime, *, days: int
+) -> tuple[Decimal, Decimal]:
+    window_end = ref + timedelta(days=days)
+    upcoming = [
+        t for t in persona.transactions if ref < t.occurred_at <= window_end
+    ]
+    obligations = sum((t.amount for t in upcoming if t.amount < 0), Decimal(0))
+    inflows = sum((t.amount for t in upcoming if t.amount > 0), Decimal(0))
+    return obligations, inflows

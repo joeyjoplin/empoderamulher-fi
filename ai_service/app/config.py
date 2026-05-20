@@ -17,6 +17,13 @@ class Settings(BaseSettings):
     log_level: str = "info"
     cors_allow_origins: list[str] = ["*"]
     database_url: str = "sqlite:///./empowerfi.db"
+    # On startup, re-run the persona seeder so a deploy that ships
+    # generator changes (new forward-window scenarios, calibration tweaks)
+    # picks up automatically. Idempotent — upserts personas and replaces
+    # their transactions; doesn't mutate wallet pubkeys or CNPJs (those are
+    # pinned by name in persona_generator.py). Disable in environments
+    # where seed changes should be promoted manually.
+    seed_personas_on_startup: bool = True
 
 
 def get_settings() -> Settings:

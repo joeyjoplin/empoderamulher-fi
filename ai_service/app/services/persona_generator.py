@@ -228,6 +228,55 @@ def _generate_ana(now: datetime) -> GeneratedPersona:
             )
         )
 
+    # Forward 9-day window: R$ 955 obligations + R$ 700 inflows = R$ 255 deficit.
+    # Smaller-tier scenario than Maria's R$ 380 — Ana operates on thinner margins.
+    txs.extend(
+        [
+            _scheduled(
+                now + timedelta(days=3),
+                Decimal("-380"),
+                Category.SUPPLIER,
+                "Atacadão Refeições",
+                tag="upcoming_obligation",
+            ),
+            _scheduled(
+                now + timedelta(days=5),
+                Decimal("-75"),
+                Category.DAS,
+                "DAS MEI",
+                tag="upcoming_obligation",
+            ),
+            _scheduled(
+                now + timedelta(days=7),
+                Decimal("-500"),
+                Category.RENT,
+                "Aluguel",
+                tag="upcoming_obligation",
+            ),
+            _scheduled(
+                now + timedelta(days=2),
+                Decimal("200"),
+                Category.EXPECTED_PIX_IN,
+                "Cliente recorrente segunda",
+                tag="projected_inflow",
+            ),
+            _scheduled(
+                now + timedelta(days=4),
+                Decimal("250"),
+                Category.EXPECTED_PIX_IN,
+                "Cliente recorrente quarta",
+                tag="projected_inflow",
+            ),
+            _scheduled(
+                now + timedelta(days=6),
+                Decimal("250"),
+                Category.EXPECTED_PIX_IN,
+                "Cliente recorrente sexta",
+                tag="projected_inflow",
+            ),
+        ]
+    )
+
     return GeneratedPersona(
         id=_persona_id("ana"),
         name="Ana Souza",
@@ -289,6 +338,58 @@ def _generate_julia(now: datetime) -> GeneratedPersona:
                 metadata={"price_hike": months_ago == 1},
             )
         )
+
+    # Forward 9-day window: R$ 1,825 obligations + R$ 1,000 inflows = R$ 825 deficit.
+    # Larger absolute deficit than Maria/Ana — Julia's revenue scale is higher
+    # (R$ 8,200 monthly avg) and the supplier price hike has now landed inside
+    # her upcoming window. Demoes that the system adapts the suggested credit
+    # amount to the persona's tier rather than offering a one-size-fits-all loan.
+    txs.extend(
+        [
+            _scheduled(
+                now + timedelta(days=3),
+                Decimal("-650"),
+                Category.SUPPLIER,
+                "Distribuidora Gourmet",
+                tag="upcoming_obligation",
+            ),
+            _scheduled(
+                now + timedelta(days=6),
+                Decimal("-75"),
+                Category.DAS,
+                "DAS MEI",
+                tag="upcoming_obligation",
+            ),
+            _scheduled(
+                now + timedelta(days=8),
+                Decimal("-1100"),
+                Category.RENT,
+                "Aluguel",
+                tag="upcoming_obligation",
+            ),
+            _scheduled(
+                now + timedelta(days=1),
+                Decimal("300"),
+                Category.EXPECTED_PIX_IN,
+                "Cliente Buffet Premium (retorno)",
+                tag="projected_inflow",
+            ),
+            _scheduled(
+                now + timedelta(days=4),
+                Decimal("200"),
+                Category.EXPECTED_PIX_IN,
+                "Cliente Boutique recorrente",
+                tag="projected_inflow",
+            ),
+            _scheduled(
+                now + timedelta(days=7),
+                Decimal("500"),
+                Category.EXPECTED_PIX_IN,
+                "Encomenda casamento — Junho",
+                tag="projected_inflow",
+            ),
+        ]
+    )
 
     return GeneratedPersona(
         id=_persona_id("julia"),

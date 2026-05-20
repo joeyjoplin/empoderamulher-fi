@@ -122,14 +122,56 @@ async def test_marias_supplier_renegotiation_picks_largest_upcoming_supplier(
 
 @pytest.mark.asyncio
 async def test_persona_without_upcoming_deficit_returns_alert_false(
+    session: Session, fake_anthropic: AsyncMock
+) -> None:
+    # Synthetic persona with zero transactions covers the "no upcoming
+    # activity → no alert" branch. Using a stand-alone insert (rather than
+    # one of the seeded personas) keeps this test isolated from changes to
+    # the canonical persona forward-windows.
+    empty = Persona(
+        id=uuid4(),
+        name="Sem Atividade",
+        business_type="other",
+        city="Test",
+        monthly_revenue_avg=Decimal("0"),
+        stage=0,
+        wallet_pubkey=None,
+    )
+    session.add(empty)
+    session.commit()
+
+    result = await detect_cash_flow_gap(
+        session, empty.id, lookahead_days=9, now=FROZEN_NOW, anthropic=fake_anthropic
+    )
+    assert result.alert is False
+    assert result.deficit_amount == Decimal("0")
+    assert result.suggestions == []
+
+
+@pytest.mark.asyncio
+async def test_anas_window_returns_alert_with_255_deficit(
     session: Session, ana_id: UUID, fake_anthropic: AsyncMock
 ) -> None:
     result = await detect_cash_flow_gap(
         session, ana_id, lookahead_days=9, now=FROZEN_NOW, anthropic=fake_anthropic
     )
-    assert result.alert is False
-    assert result.deficit_amount == Decimal("0")
-    assert result.suggestions == []
+    assert result.alert is True
+    assert result.deficit_amount == Decimal("255")
+
+
+@pytest.mark.asyncio
+async def test_julias_window_returns_alert_with_825_deficit(
+    session: Session, fake_anthropic: AsyncMock
+) -> None:
+    julia = session.scalar(
+        select(Persona).where(Persona.business_type == "doces_gourmet")
+    )
+    assert julia is not None
+    result = await detect_cash_flow_gap(
+        session, julia.id, lookahead_days=9, now=FROZEN_NOW, anthropic=fake_anthropic
+    )
+    assert result.alert is True
+    assert result.deficit_amount == Decimal("825")
 
 
 @pytest.mark.asyncio
