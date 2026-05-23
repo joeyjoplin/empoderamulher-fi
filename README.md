@@ -7,6 +7,15 @@ B2B marketplace with embedded BNPL — all built on Solana.
 
 > Built for the Solana RWA hackathon. MVP, devnet.
 
+## Try it live (for judges)
+
+| Surface | Link | What you'll see |
+|---|---|---|
+| **MVP dapp** | [empoderamulher-fi.vercel.app](https://empoderamulher-fi.vercel.app/) | Maria's full demo loop: AI cash-flow alert → on-chain loan → score up → marketplace (direct pay + BNPL) → impact dashboard |
+| **Score-as-a-Service sandbox** | [empoderamulher-fi.vercel.app/api-sandbox](https://empoderamulher-fi.vercel.app/api-sandbox) | Partner-lender UI — paste a demo CNPJ + Bearer token, read Maria's on-chain score the same way a third-party would. No persona session required. |
+
+All on-chain activity is on Solana devnet. Each success screen links to the real transaction on Solana Explorer.
+
 ## The demo loop
 
 Every part of the product points at this one scripted flow:
